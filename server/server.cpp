@@ -31,8 +31,8 @@ const int MAX_CON = 512;
 
 struct client_data
 {
-    char *method[method_size];
-    char *filename[filename_size];
+    char method[method_size];
+    char filename[filename_size];
 };
 //声明epoll_event结构体的变量
 struct epoll_event ev, event[MAX_EVENTS];
@@ -154,7 +154,7 @@ void epollHandling(int epfd, int pos) {
     char method[method_size];
     char filename[filename_size];
 
-    if (event[i].events & EPOLLIN) {
+    if (event[pos].events & EPOLLIN) {
             
         cout << "EPOLLIN" << endl;
 
@@ -167,7 +167,7 @@ void epollHandling(int epfd, int pos) {
 
         //判断是否是HTTP请求
         if (!strstr(buffer, "HTTP/")) {
-            sendError(sock);
+            sendError(&client_sock);
             epoll_ctl(epfd, EPOLL_CTL_DEL, client_sock, NULL);
             close(client_sock);
             return;
@@ -180,7 +180,7 @@ void epollHandling(int epfd, int pos) {
             strcpy(filename, "index.html");
 
         if (0 != strcmp(method, "GET")) {
-            sendError(sock);
+            sendError(&client_sock);
             epoll_ctl(epfd, EPOLL_CTL_DEL, client_sock, NULL);
             close(client_sock);
             return;
