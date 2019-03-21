@@ -40,7 +40,7 @@ struct client_data cln_data[MAX_CON];
 
 void setnonblocking(int sock);
 void handleError(const string &msg);
-void epollHandling();
+void epollHandling(int epfd, int pos);
 void requestHandling(int *sock);
 void sendError(int *sock);
 void sendData(int *sock, char *filename);
