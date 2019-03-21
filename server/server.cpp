@@ -201,6 +201,8 @@ void epollHandling(int epfd, int pos) {
     }
 }
 
+//用于原非epoll的简单socket实现版本
+//由epoll替代
 //处理请求
 void requestHandling(int *sock) {
     int client_sock = *sock;
@@ -222,7 +224,8 @@ void requestHandling(int *sock) {
     strcpy(filename, strtok(NULL, " /"));
     
     if (0 == strcmp(filename, "HTTP"))
-    strcpy(filename, "index.html");    
+        strcpy(filename, "index.html");
+
     if (0 != strcmp(method, "GET")) {
         sendError(sock);
         close(client_sock);
@@ -232,6 +235,7 @@ void requestHandling(int *sock) {
     sendData(sock, filename);
 }
 
+//发送数据
 void sendData(int *sock, char *filename) {
     int client_sock = *sock;
     char buffer[common_buffer_size];
@@ -241,6 +245,7 @@ void sendData(int *sock, char *filename) {
     strtok(buffer, ".");
     strcpy(type, strtok(NULL, "."));
     
+    //多路选择数据类型，多类型可使用switch代替
     if (0 == strcmp(type, "html")) {
         sendHTML(sock, filename);
     }else if (0 == strcmp(type, "jpg")) {
@@ -252,12 +257,13 @@ void sendData(int *sock, char *filename) {
     }
 }
 
+//发送页面
 void sendHTML(int *sock, char *filename) {
     int client_sock = *sock;
     char buffer[buffer_size];
     FILE *fp;
     
-    char status[] = "HTTP/1.0 200 OK\r\n";
+    char status[] = "HTTP/1.1 200 OK\r\n";
     char header[] = "Server: A Simple Web Server\r\nContent-Type: text/html\r\n\r\n";
     
     write(client_sock, status, strlen(status));
@@ -287,7 +293,7 @@ void sendJPG(int *sock, char *filename) {
     FILE *fp;
     FILE *fw;
     
-    char status[] = "HTTP/1.0 200 OK\r\n";
+    char status[] = "HTTP/1.1 200 OK\r\n";
     char header[] = "Server: A Simple Web Server\r\nContent-Type: image\r\n\r\n";
     
     write(client_sock, status, strlen(status));
@@ -321,7 +327,7 @@ void handleError(const string &msg) {
 void sendError(int *sock) {
     int client_sock = *sock;
     
-    char status[] = "HTTP/1.0 400 Bad Request\r\n";
+    char status[] = "HTTP/1.1 400 Bad Request\r\n";
     char header[] = "Server: A Simple Web Server\r\nContent-Type: text/html\r\n\r\n";
     char body[] = "<html><head><title>Bad Request</title></head><body><p>400 Bad Request</p></body></html>";
     
