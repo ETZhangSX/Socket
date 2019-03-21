@@ -96,12 +96,12 @@ int main() {
     //等待消息传入
     while (true) {
         //等待epoll事件发生
-        nfds = epoll_wait(epfd, events, MAX_EVENTS, TIMEOUT);
+        nfds = epoll_wait(epfd, event, MAX_EVENTS, TIMEOUT);
 
         //处理发生事件
         for (int i = 0; i < nfds; i++) {
             
-            if (events[i].data.fd == server_sock) {
+            if (event[i].data.fd == server_sock) {
                 
                 client_address_size = sizeof(client_addr);
                 client_sock = accept(server_sock, (struct sockaddr*) &client_addr, &client_address_size);
@@ -149,12 +149,12 @@ void setnonblocking(int sock) {
 
 //处理epoll事件
 void epollHandling(int epfd, int pos) {
-    int client_sock = events[pos].data.fd;
+    int client_sock = event[pos].data.fd;
     char buffer[buffer_size];
     char method[method_size];
     char filename[filename_size];
 
-    if (events[i].events & EPOLLIN) {
+    if (event[i].events & EPOLLIN) {
             
         cout << "EPOLLIN" << endl;
 
@@ -195,7 +195,7 @@ void epollHandling(int epfd, int pos) {
         strcpy(cln_data[client_sock].method, method);
         strcpy(cln_data[client_sock].filename, filename);
     }
-    else if (events[pos].events & EPOLLOUT) {
+    else if (event[pos].events & EPOLLOUT) {
         sendData(&client_sock, cln_data[client_sock].filename);
         epoll_ctl(epfd, EPOLL_CTL_DEL, client_sock, NULL);
     }
