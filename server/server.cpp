@@ -1,5 +1,5 @@
 //
-//  exam.cpp
+//  server.cpp
 //  test
 //
 //  Created by 张顺鑫 on 2019/3/9.
@@ -10,20 +10,37 @@
 #include <cstring>
 #include <unistd.h>
 #include <sys/socket.h>
+#include <sys/epoll.h> //epoll头文件
+#include <netinet/in.h>
+#include <fcntl.h>
+#include <errno.h>
 #include <arpa/inet.h>
 #include <string>
-#include <cstring>
 #include <iostream>
 
 using namespace std;
 
-const int port = 9090;
+const int port = 80;
 const int buffer_size = 1<<20;
 const int method_size = 1<<10;
 const int filename_size = 1<<10;
 const int common_buffer_size = 1<<10;
+const int MAX_EVENTS = 256;
+const int TIMEOUT = 500;
+const int MAX_CON = 512;
 
+struct client_data
+{
+    char *method[method_size];
+    char *filename[filename_size];
+};
+//声明epoll_event结构体的变量
+struct epoll_event ev, event[MAX_EVENTS];
+struct client_data cln_data[MAX_CON];
+
+void setnonblocking(int sock);
 void handleError(const string &msg);
+void epollHandling();
 void requestHandling(int *sock);
 void sendError(int *sock);
 void sendData(int *sock, char *filename);
@@ -31,19 +48,35 @@ void sendHTML(int *sock, char *filename);
 void sendJPG(int *sock, char *filename);
 
 int main() {
+    //声明套接字
     int server_sock;
     int client_sock;
-    
+    //声明epoll句柄
+    int epfd;
+    //声明事件发生数
+    int nfds;
+
+    //生成epoll句柄
+    epfd = epoll_create(MAX_EVENTS);
     struct sockaddr_in server_addr;
     struct sockaddr_in client_addr;
     
     socklen_t client_address_size;
+    
     //创建套接字
     server_sock = socket(PF_INET, SOCK_STREAM, 0);
-    
+    // setnonblocking(server_sock);
+    //设置相关描述符
+    ev.data.fd = server_sock;
+    //设置事件类型为 可读 边缘触发
+    ev.events = EPOLLIN|EPOLLET;
+    //注册epoll事件
+    epoll_ctl(epfd, EPOLL_CTL_ADD, server_sock, &ev);
+
     if (server_sock == -1) {
         handleError("socket error");
     }
+    
     //初始化并设置套接字地址
     memset(&server_addr, 0, sizeof(server_addr));
     server_addr.sin_family = AF_INET;
@@ -62,18 +95,110 @@ int main() {
     
     //等待消息传入
     while (true) {
-        client_address_size = sizeof(client_addr);
-        client_sock = accept(server_sock, (struct sockaddr*) &client_addr, &client_address_size);
-        
-        if (client_sock == -1) {
-            handleError("accept error");
+        //等待epoll事件发生
+        nfds = epoll_wait(epfd, events, MAX_EVENTS, TIMEOUT);
+
+        //处理发生事件
+        for (int i = 0; i < nfds; i++) {
+            
+            if (events[i].data.fd == server_sock) {
+                
+                client_address_size = sizeof(client_addr);
+                client_sock = accept(server_sock, (struct sockaddr*) &client_addr, &client_address_size);
+                
+                if (client_sock == -1) {
+                    handleError("accept error");
+                }
+                // setnonblocking(client_sock);
+
+                char *str = inet_ntoa(client_addr.sin_addr);
+                cout << "accept from " << str << endl;
+
+                ev.data.fd = client_sock;
+
+                ev.events = EPOLLIN|EPOLLET;
+
+                //注册事件
+                epoll_ctl(epfd, EPOLL_CTL_ADD, client_sock, &ev);
+            }
+            else {
+                epollHandling(epfd, i);
+            }
         }
-        
-        requestHandling(&client_sock);
+        // requestHandling(&client_sock);
     }
     
     close(server_sock);
+    close(epfd);
     return 0;
+}
+
+void setnonblocking(int sock) {
+    int opts;
+    opts = fcntl(sock, F_GETFL);
+    if (opts < 0) {
+        perror("fcntl(sock,GETFL)");
+        exit(1);
+    }
+    opts = opts|O_NONBLOCK;
+    if (fcntl(sock, F_SETFL, opts) < 0) {
+        perror("fcntl(sock, SETFL, opts)");
+        exit(1);
+    }
+}
+
+//处理epoll事件
+void epollHandling(int epfd, int pos) {
+    int client_sock = events[pos].data.fd;
+    char buffer[buffer_size];
+    char method[method_size];
+    char filename[filename_size];
+
+    if (events[i].events & EPOLLIN) {
+            
+        cout << "EPOLLIN" << endl;
+
+        if (client_sock < 0) {
+            return;
+        }
+        
+        //读取数据到buffer
+        read(client_sock, buffer, sizeof(buffer) - 1);
+
+        //判断是否是HTTP请求
+        if (!strstr(buffer, "HTTP/")) {
+            sendError(sock);
+            epoll_ctl(epfd, EPOLL_CTL_DEL, client_sock, NULL);
+            close(client_sock);
+            return;
+        }
+    
+        strcpy(method, strtok(buffer, " /"));
+        strcpy(filename, strtok(NULL, " /"));
+    
+        if (0 == strcmp(filename, "HTTP") || 0 == strcmp(filename, "home"))
+            strcpy(filename, "index.html");
+
+        if (0 != strcmp(method, "GET")) {
+            sendError(sock);
+            epoll_ctl(epfd, EPOLL_CTL_DEL, client_sock, NULL);
+            close(client_sock);
+            return;
+        }
+
+        //修改注册事件
+        ev.data.fd = client_sock;
+        ev.events = EPOLLOUT|EPOLLET;
+        epoll_ctl(epfd, EPOLL_CTL_MOD, client_sock, &ev);
+
+        //将读取信息保存
+        strcpy(cln_data[client_sock].method, method);
+        strcpy(cln_data[client_sock].filename, filename);
+    }
+    else if (events[pos].events & EPOLLOUT) {
+        sendData(&client_sock, cln_data[client_sock].filename);
+        epoll_ctl(epfd, EPOLL_CTL_DEL, client_sock, NULL);
+    }
 }
 
 //处理请求
@@ -83,8 +208,10 @@ void requestHandling(int *sock) {
     char method[method_size];
     char filename[filename_size];
     
+    //读取数据到buffer
     read(client_sock, buffer, sizeof(buffer) - 1);
     
+    //判断是否是HTTP请求
     if (!strstr(buffer, "HTTP/")) {
         sendError(sock);
         close(client_sock);
@@ -94,6 +221,8 @@ void requestHandling(int *sock) {
     strcpy(method, strtok(buffer, " /"));
     strcpy(filename, strtok(NULL, " /"));
     
+    if (0 == strcmp(filename, "HTTP"))
+    strcpy(filename, "index.html");    
     if (0 != strcmp(method, "GET")) {
         sendError(sock);
         close(client_sock);
@@ -107,9 +236,8 @@ void sendData(int *sock, char *filename) {
     int client_sock = *sock;
     char buffer[common_buffer_size];
     char type[common_buffer_size];
-    
+    printf("%s\n", filename);
     strcpy(buffer, filename);
-    
     strtok(buffer, ".");
     strcpy(type, strtok(NULL, "."));
     
