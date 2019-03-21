@@ -291,7 +291,7 @@ void sendJPG(int *sock, char *filename) {
     int client_sock = *sock;
     char buffer[buffer_size];
     FILE *fp;
-    FILE *fw;
+    // FILE *fw;
     
     char status[] = "HTTP/1.1 200 OK\r\n";
     char header[] = "Server: A Simple Web Server\r\nContent-Type: image/jpeg\r\n\r\n";
@@ -308,18 +308,16 @@ void sendJPG(int *sock, char *filename) {
     }
     printf("Sending img\n");
     // fw = fdopen(client_sock, "w");
-    // fread(buffer, 1, sizeof(buffer), fp);
+    fread(buffer, 1, sizeof(buffer), fp);
     // while (!feof(fp)) {
     //     fwrite(buffer, 1, sizeof(buffer), fw);
     //     fread(buffer, 1, sizeof(buffer), fp);
     // }
-
-    int send_len = 0;
-    while (send_len = fread(buffer, 1, sizeof(buffer), fp) > 0) {
-        send(client_sock, buffer, send_len, 0);
+    while(!feof(fp)) {
+        write(client_sock, buffer, strlen(buffer));
+        fread(buffer, 1, sizeof(buffer), fp);
     }
-    shutdown(client_sock, SHUT_WR);
-    recv(client_sock, buffer, sizeof(buffer), 0);
+
     
     // fclose(fw);
     fclose(fp);
