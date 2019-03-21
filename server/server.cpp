@@ -306,15 +306,22 @@ void sendJPG(int *sock, char *filename) {
         handleError("open file failed");
         return;
     }
-    
-    fw = fdopen(client_sock, "w");
-    fread(buffer, 1, sizeof(buffer), fp);
-    while (!feof(fp)) {
-        fwrite(buffer, 1, sizeof(buffer), fw);
-        fread(buffer, 1, sizeof(buffer), fp);
+    printf("Sending img\n");
+    // fw = fdopen(client_sock, "w");
+    // fread(buffer, 1, sizeof(buffer), fp);
+    // while (!feof(fp)) {
+    //     fwrite(buffer, 1, sizeof(buffer), fw);
+    //     fread(buffer, 1, sizeof(buffer), fp);
+    // }
+
+    int send_len = 0;
+    while (send_len = fread(buffer, 1, sizeof(buffer), fp) > 0) {
+        send(client_sock, buffer, send_len, 0);
     }
+    shutdown(client_sock, SHUT_WR);
+    recv(client_sock, buffer, sizeof(buffer), 0);
     
-    fclose(fw);
+    // fclose(fw);
     fclose(fp);
     close(client_sock);
 }
