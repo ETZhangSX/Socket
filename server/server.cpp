@@ -291,7 +291,7 @@ void sendJPG(int *sock, char *filename) {
     int client_sock = *sock;
     char buffer[buffer_size];
     FILE *fp;
-    // FILE *fw;
+    FILE *fw;
     
     // int size = filelength(fileno(fp));
 
@@ -309,11 +309,11 @@ void sendJPG(int *sock, char *filename) {
         return;
     }
     printf("Sending img\n");
-    // fw = fdopen(client_sock, "w");
+    fw = fdopen(client_sock, "w");
     fread(buffer, sizeof(char), sizeof(buffer), fp);
     while (!feof(fp)) {
-        // fwrite(buffer, sizeof(char), sizeof(buffer), fw);
-        write(client_sock, buffer, strlen(buffer));
+        fwrite(buffer, sizeof(char), sizeof(buffer), fw);
+        // write(client_sock, buffer, strlen(buffer));
         fread(buffer, sizeof(char), sizeof(buffer), fp);
     }
     printf("Finish sending\n");
@@ -323,7 +323,7 @@ void sendJPG(int *sock, char *filename) {
     // }
 
     
-    // fclose(fw);
+    fclose(fw);
     fclose(fp);
     close(client_sock);
 }
