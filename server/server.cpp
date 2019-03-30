@@ -292,7 +292,7 @@ void sendJPG(int *sock, char *filename) {
     char buffer[buffer_size];
     FILE *fp;
     // FILE *fw;
-    fp = fopen(filename, "rb");
+    
     // int size = filelength(fileno(fp));
 
     char status[] = "HTTP/1.1 200 OK\r\n";
@@ -300,7 +300,7 @@ void sendJPG(int *sock, char *filename) {
     
     write(client_sock, status, strlen(status));
     write(client_sock, header, strlen(header));
-    
+    fp = fopen(filename, "rb");
 
     if (NULL == fp) {
         sendError(sock);
@@ -316,6 +316,7 @@ void sendJPG(int *sock, char *filename) {
         write(client_sock, buffer, strlen(buffer));
         fread(buffer, sizeof(char), sizeof(buffer), fp);
     }
+    printf("Finish sending\n");
     // while(!feof(fp)) {
     //     write(client_sock, buffer, strlen(buffer));
     //     fread(buffer, 1, sizeof(buffer), fp);
