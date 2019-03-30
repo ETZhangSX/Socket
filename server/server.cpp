@@ -296,7 +296,7 @@ void sendJPG(int *sock, char *filename) {
     // int size = filelength(fileno(fp));
 
     char status[] = "HTTP/1.1 200 OK\r\n";
-    char header[] = "Server: A Simple Web Server\r\nAccept-Ranges: bytes\r\nContent-Type: image/jpeg\r\nContent-Length: 657\r\n\r\n";
+    char header[] = "Server: A Simple Web Server\r\nContent-Type: image/jpeg\r\nContent-Length: 657\r\n\r\n";
     
     write(client_sock, status, strlen(status));
     write(client_sock, header, strlen(header));
