@@ -292,15 +292,17 @@ void sendJPG(int *sock, char *filename) {
     char buffer[buffer_size];
     FILE *fp;
     FILE *fw;
-    
-    // int size = filelength(fileno(fp));
+    fp = fopen(filename, "rb");
+
+    fseek(fp, 0L, SEEK_END);
+    int len = ftell(fp);
 
     char status[] = "HTTP/1.1 200 OK\r\n";
-    char header[] = "Server: A Simple Web Server\r\nContent-Type: image/jpeg\r\nContent-Length: 700\r\n\r\n";
-    
+    // char header[] = "Server: A Simple Web Server\r\nContent-Type: image/jpeg\r\nContent-Length: 700\r\n\r\n";
+    string header = "Server: A Simple Web Server\r\nContent-Type: image/jpeg\r\n" + "Content-Range: bytes " + to_string(0) + "-" + to_string(len - 1) + "/" + to_string(len) + "\r\n" + "Content-Length: " + to_string(len) + "\r\n\r\n";
     write(client_sock, status, strlen(status));
-    write(client_sock, header, strlen(header));
-    fp = fopen(filename, "rb");
+    write(client_sock, header.c_str(), strlen(header));
+    
 
     if (NULL == fp) {
         sendError(sock);

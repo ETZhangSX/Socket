@@ -13,28 +13,12 @@
 #include <errno.h>
 #include <arpa/inet.h>
 #include <string>
+#include "HttpServer.h"
 
 using namespace std;
 
-enum HttpMethod
-{
-    METHOD_POST = 1,
-    METHOD_GET,
-    METHOD_HEAD
-};
-
-enum HttpVersion
-{
-    HTTP_10 = 1,
-    HTTP_11
-};
-
-class HttpServer {
-public:
-	HttpServer(){}
-	~HttpServer(){}
-	void start(){
-		int listen_sock;
+void HttpServer::start() {
+	int listen_sock;
 		//epoll句柄
 		int epfd;
 		//事件发生数
@@ -60,16 +44,12 @@ public:
 		server_addr.sin_family = AF_INET;
 		server_addr.sin_addr.s_addr = htonl(INADDR_ANY);
 		server_addr.sin_port = htons(port);
-	}
-	void parseRequest(){}
-	void connection(){}
-	void errorHandling(){}
-private:
-	static const int MAX_NFDS = 500;
-	struct epoll_event ev, event[MAX_NFDS];
-	int fd_;
-	string inBuffer_;
-	string outBuffer_;
-	string fileName_;
-	
 }
+
+void HttpServer::parseRequest() {
+}
+
+void HttpServer::connection() {}
+
+void HttpServer::errorHandling() {}
+
