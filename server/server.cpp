@@ -292,7 +292,8 @@ void sendJPG(int *sock, char *filename) {
     char buffer[buffer_size];
     FILE *fp;
     FILE *fw;
-    fp = fopen(filename, "rb");
+    printf("%s\n", filen);
+    fp = fopen(filename, "r");
 
     fseek(fp, 0L, SEEK_END);
     int len = ftell(fp);
@@ -323,7 +324,7 @@ void sendJPG(int *sock, char *filename) {
 
 
     printf("Sending img\n");
-    fw = fdopen(client_sock, "wb");
+    fw = fdopen(client_sock, "w");
 
     fseek(fp, 0L, SEEK_SET);
 
