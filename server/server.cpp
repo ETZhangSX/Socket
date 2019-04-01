@@ -323,10 +323,10 @@ void sendJPG(int *sock, char *filename) {
 
 
     printf("Sending img\n");
-    fw = fdopen(client_sock, "w");
+    fw = fdopen(client_sock, "wb");
 
     fseek(fp, 0L, SEEK_SET);
-    
+
     fread(buffer, sizeof(char), sizeof(buffer), fp);
     while (!feof(fp)) {
         fwrite(buffer, sizeof(char), sizeof(buffer), fw);
