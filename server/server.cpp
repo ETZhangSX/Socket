@@ -10,7 +10,7 @@
 #include <cstring>
 #include <unistd.h>
 #include <sys/socket.h>
-#include <sys/epoll.h> //epoll头文件
+// #include <sys/epoll.h> //epoll头文件
 #include <netinet/in.h>
 #include <fcntl.h>
 #include <errno.h>
@@ -299,9 +299,19 @@ void sendJPG(int *sock, char *filename) {
 
     char status[] = "HTTP/1.1 200 OK\r\n";
     // char header[] = "Server: A Simple Web Server\r\nContent-Type: image/jpeg\r\nContent-Length: 700\r\n\r\n";
-    string header = "Server: A Simple Web Server\r\nContent-Type: image/jpeg\r\n" + "Content-Range: bytes " + to_string(0) + "-" + to_string(len - 1) + "/" + to_string(len) + "\r\n" + "Content-Length: " + to_string(len) + "\r\n\r\n";
+    string header = "Server: A Simple Web Server\r\nContent-Type: image/jpeg\r\n";
+    header += "Content-Range: bytes ";
+    header += to_string(0);
+    header += "-";
+    header += to_string(len - 1);
+    header += "/";
+    header += to_string(len);
+    header += "\r\n";
+    header += "Content-Length: ";
+    header += to_string(len);
+    header += "\r\n\r\n";
     write(client_sock, status, strlen(status));
-    write(client_sock, header.c_str(), strlen(header));
+    write(client_sock, header.c_str(), header.length());
     
 
     if (NULL == fp) {
