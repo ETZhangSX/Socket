@@ -33,7 +33,9 @@ class HttpServer {
 public:
 	HttpServer(){}
 	~HttpServer(){}
+	
 	void start();
+	
 	void parseRequest();
 	void connection();
 	void errorHandling();

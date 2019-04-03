@@ -17,6 +17,7 @@
 #include <arpa/inet.h>
 #include <string>
 #include <iostream>
+#include <sstream>
 
 using namespace std;
 
@@ -114,10 +115,10 @@ int main() {
                 char *str = inet_ntoa(client_addr.sin_addr);
                 cout << "accept from " << str << endl;
 
+                //注册事件描述符
                 ev.data.fd = client_sock;
-
+                //注册事件的类型
                 ev.events = EPOLLIN|EPOLLET;
-
                 //注册事件
                 epoll_ctl(epfd, EPOLL_CTL_ADD, client_sock, &ev);
             }
@@ -165,6 +166,12 @@ void epollHandling(int epfd, int pos) {
         //读取数据到buffer
         read(client_sock, buffer, sizeof(buffer) - 1);
 
+        string test(buffer);
+        stringstream input(test);
+        while (input >> test) {
+            cout << test << ' ';
+        }
+        cout << endl;
         //判断是否是HTTP请求
         if (!strstr(buffer, "HTTP/")) {
             sendError(&client_sock);
@@ -212,6 +219,7 @@ void requestHandling(int *sock) {
     
     //读取数据到buffer
     read(client_sock, buffer, sizeof(buffer) - 1);
+
     
     //判断是否是HTTP请求
     if (!strstr(buffer, "HTTP/")) {
@@ -293,21 +301,21 @@ void sendJPG(int *sock, char *filename) {
     FILE *fp;
     FILE *fw;
     printf("%s\n", filen);
-    fp = fopen(filename, "r");
+    fp = fopen(filename, "rb");
 
     fseek(fp, 0L, SEEK_END);
     int len = ftell(fp);
 
     string status = "HTTP/1.1 200 OK\r\n";
-    // char header[] = "Server: A Simple Web Server\r\nContent-Type: image/jpeg\r\nContent-Length: 700\r\n\r\n";
-    string header = "Server: A Simple Web Server\r\nCache-Control: public\r\nContent-Type: image/jpeg\r\n";
-    // header += "Content-Range: bytes ";
-    // header += to_string(0);
-    // header += "-";
-    // header += to_string(len - 1);
-    // header += "/";
-    // header += to_string(len);
-    // header += "\r\n";
+    
+    string header = "Server: A Simple Web Server\r\nContent-Type: image/jpeg\r\n";
+    header += "Content-Range: bytes ";
+    header += to_string(0);
+    header += "-";
+    header += to_string(len - 1);
+    header += "/";
+    header += to_string(len);
+    header += "\r\n";
     header += "Content-Length: ";
     header += to_string(len);
     header += "\r\n\r\n";
@@ -324,23 +332,18 @@ void sendJPG(int *sock, char *filename) {
 
 
     printf("Sending img\n");
-    fw = fdopen(client_sock, "w");
+    fw = fdopen(client_sock, "wb");
 
     fseek(fp, 0L, SEEK_SET);
 
-    fread(buffer, sizeof(char), sizeof(buffer), fp);
+    //循环读写，确保文件读完
     while (!feof(fp)) {
-        fwrite(buffer, sizeof(char), sizeof(buffer), fw);
-        // write(client_sock, buffer, strlen(buffer));
         fread(buffer, sizeof(char), sizeof(buffer), fp);
+        fwrite(buffer, sizeof(char), sizeof(buffer), fw);
     }
-    printf("Finish sending\n");
-    // while(!feof(fp)) {
-    //     write(client_sock, buffer, strlen(buffer));
-    //     fread(buffer, 1, sizeof(buffer), fp);
-    // }
-
     
+    printf("Finish sending\n");
+
     fclose(fw);
     fclose(fp);
     close(client_sock);
