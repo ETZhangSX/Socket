@@ -47,6 +47,7 @@ void sendError(int *sock);
 void sendData(int *sock, char *filename);
 void sendHTML(int *sock, char *filename);
 void sendJPG(int *sock, char *filename);
+void sendICO(int *sock, char *filename);
 
 int main() {
     //声明套接字
@@ -258,7 +259,11 @@ void sendData(int *sock, char *filename) {
         sendHTML(sock, filename);
     }else if (0 == strcmp(type, "jpg")) {
         sendJPG(sock, filename);
-    }else{
+    }else if (0 == strcmp(type, "ico")) {
+        sendICO(sock, filename);
+    }
+
+    else{
         sendError(sock);
         close(client_sock);
         return;
@@ -332,6 +337,60 @@ void sendJPG(int *sock, char *filename) {
 
 
     printf("Sending img\n");
+    fw = fdopen(client_sock, "wb");
+
+    fseek(fp, 0L, SEEK_SET);
+
+    //循环读写，确保文件读完
+    while (!feof(fp)) {
+        fread(buffer, sizeof(char), sizeof(buffer), fp);
+        fwrite(buffer, sizeof(char), sizeof(buffer), fw);
+    }
+    
+    printf("Finish sending\n");
+
+    fclose(fw);
+    fclose(fp);
+    close(client_sock);
+}
+
+void sendICO(int *sock, char *filename) {
+    int client_sock = *sock;
+    char buffer[buffer_size];
+    FILE *fp;
+    FILE *fw;
+    printf("%s\n", filen);
+    fp = fopen(filename, "rb");
+
+    fseek(fp, 0L, SEEK_END);
+    int len = ftell(fp);
+
+    string status = "HTTP/1.1 200 OK\r\n";
+    
+    string header = "Server: A Simple Web Server\r\nContent-Type: text/html\r\n";
+    header += "Content-Range: bytes ";
+    header += to_string(0);
+    header += "-";
+    header += to_string(len - 1);
+    header += "/";
+    header += to_string(len);
+    header += "\r\n";
+    header += "Content-Length: ";
+    header += to_string(len);
+    header += "\r\n\r\n";
+    write(client_sock, status.c_str(), status.length());
+    write(client_sock, header.c_str(), header.length());
+    
+
+    if (NULL == fp) {
+        sendError(sock);
+        close(client_sock);
+        handleError("open file failed");
+        return;
+    }
+
+
+    printf("Sending favicon.ico\n");
     fw = fdopen(client_sock, "wb");
 
     fseek(fp, 0L, SEEK_SET);
