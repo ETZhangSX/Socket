@@ -305,7 +305,6 @@ void sendJPG(int *sock, char *filename) {
     char buffer[buffer_size];
     FILE *fp;
     FILE *fw;
-    printf("%s\n", filen);
     fp = fopen(filename, "rb");
 
     fseek(fp, 0L, SEEK_END);
@@ -359,7 +358,6 @@ void sendICO(int *sock, char *filename) {
     char buffer[buffer_size];
     FILE *fp;
     FILE *fw;
-    printf("%s\n", filen);
     fp = fopen(filename, "rb");
 
     fseek(fp, 0L, SEEK_END);
