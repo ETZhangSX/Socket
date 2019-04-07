@@ -253,6 +253,11 @@ void sendData(int *sock, char *filename) {
     strcpy(buffer, filename);
     strtok(buffer, ".");
     strcpy(type, strtok(NULL, "."));
+
+    // a test of open file
+    string temp(filename);
+    temp = "./" + temp;
+    filename = temp.c_str;
     
     //多路选择数据类型，多类型可使用switch代替
     if (0 == strcmp(type, "html")) {
@@ -290,10 +295,10 @@ void sendHTML(int *sock, char *filename) {
         return;
     }
     
-    fgets(buffer, sizeof(buffer), fp);
+    // fgets(buffer, sizeof(buffer), fp);
     while(!feof(fp)) {
-        write(client_sock, buffer, strlen(buffer));
         fgets(buffer, sizeof(buffer), fp);
+        write(client_sock, buffer, strlen(buffer));
     }
     
     fclose(fp);

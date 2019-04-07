@@ -13,8 +13,8 @@
 #include <errno.h>
 #include <arpa/inet.h>
 #include <string>
+#include <map>
 
-using namespace std;
 
 enum HttpMethod
 {
@@ -33,19 +33,32 @@ class HttpServer {
 public:
 	HttpServer(){}
 	~HttpServer(){}
-	
+
 	void start();
 	
-	void parseRequest();
+	void parseURI();
+	void parseHeader();
+	void requestHandling();
 	void connection();
 	void errorHandling();
 	
 private:
+	string getHeader();
+	void handleGET();
+	void handlePOST();
+	void handleHEAD();
+
+	void handleRead();
+	void handleWrite();
+
 	static const int MAX_NFDS = 500;
 	struct epoll_event ev, event[MAX_NFDS];
 	int fd_;
-	string inBuffer_;
-	string outBuffer_;
-	string fileName_;
-	
+	std::string inBuffer_;
+	std::string outBuffer_;
+	std::string fileName_;
+	std::string outHeader_;
+	std::map<string, string> header_;
+	HttpVersion http_version_;
+	HttpMethod method_;
 }
