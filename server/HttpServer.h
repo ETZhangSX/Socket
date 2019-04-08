@@ -43,7 +43,8 @@ public:
 	void errorHandling();
 	
 private:
-	string getHeader();
+	std::string getType();
+	std::string getHeader();
 	void handleGET();
 	void handlePOST();
 	void handleHEAD();

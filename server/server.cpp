@@ -156,6 +156,10 @@ void epollHandling(int epfd, int pos) {
     char method[method_size];
     char filename[filename_size];
 
+    string t_method;
+    string t_filename;
+    string t_httpversion;
+
     if (event[pos].events & EPOLLIN) {
             
         cout << "EPOLLIN" << endl;
@@ -167,32 +171,51 @@ void epollHandling(int epfd, int pos) {
         //读取数据到buffer
         read(client_sock, buffer, sizeof(buffer) - 1);
 
+        //获取请求头
         string test(buffer);
         stringstream input(test);
-        while (input >> test) {
-            cout << test << ' ';
-        }
-        cout << endl;
-        //判断是否是HTTP请求
-        if (!strstr(buffer, "HTTP/")) {
-            sendError(&client_sock);
-            epoll_ctl(epfd, EPOLL_CTL_DEL, client_sock, NULL);
-            close(client_sock);
-            return;
-        }
-    
-        strcpy(method, strtok(buffer, " /"));
-        strcpy(filename, strtok(NULL, " /"));
-    
-        if (0 == strcmp(filename, "HTTP") || 0 == strcmp(filename, "home"))
-            strcpy(filename, "index.html");
+        input >> t_method;
+        input >> t_filename;
+        input >> t_httpversion;
 
-        if (0 != strcmp(method, "GET")) {
+        if (t_httpversion.find("HTTP/") < 0) {
             sendError(&client_sock);
             epoll_ctl(epfd, EPOLL_CTL_DEL, client_sock, NULL);
             close(client_sock);
             return;
         }
+
+        if (t_filename == "/" || t_filename == "/home") {
+            t_filename == "./index.html";
+        }
+
+        if (t_method != "GET") {
+            sendError(&client_sock);
+            epoll_ctl(epfd, EPOLL_CTL_DEL, client_sock, NULL);
+            close(client_sock);
+            return;
+        }
+
+        //判断是否是HTTP请求
+        // if (!strstr(buffer, "HTTP/")) {
+        //     sendError(&client_sock);
+        //     epoll_ctl(epfd, EPOLL_CTL_DEL, client_sock, NULL);
+        //     close(client_sock);
+        //     return;
+        // }
+    
+        // strcpy(method, strtok(buffer, " /"));
+        // strcpy(filename, strtok(NULL, " /"));
+    
+        // if (0 == strcmp(filename, "HTTP") || 0 == strcmp(filename, "home"))
+        //     strcpy(filename, "index.html");
+
+        // if (0 != strcmp(method, "GET")) {
+        //     sendError(&client_sock);
+        //     epoll_ctl(epfd, EPOLL_CTL_DEL, client_sock, NULL);
+        //     close(client_sock);
+        //     return;
+        // }
 
         //修改注册事件
         ev.data.fd = client_sock;
@@ -200,11 +223,11 @@ void epollHandling(int epfd, int pos) {
         epoll_ctl(epfd, EPOLL_CTL_MOD, client_sock, &ev);
 
         //将读取信息保存
-        strcpy(cln_data[client_sock].method, method);
-        strcpy(cln_data[client_sock].filename, filename);
+        strcpy(cln_data[client_sock].method, t_method.c_str());
+        strcpy(cln_data[client_sock].filename, t_filename.c_str());
     }
     else if (event[pos].events & EPOLLOUT) {
-        sendData(&client_sock, cln_data[client_sock].filename);
+        t_sendData(&client_sock, cln_data[client_sock].filename);
         epoll_ctl(epfd, EPOLL_CTL_DEL, client_sock, NULL);
     }
 }
@@ -244,6 +267,39 @@ void requestHandling(int *sock) {
     sendData(sock, filename);
 }
 
+void t_sendData(int *sock, char *filename) {
+    int client_sock = *sock;
+    char buffer[common_buffer_size];
+    string t_filename(filename);
+    string type;
+
+    cout << t_filename << endl;
+
+    int pos = t_filename.find('.', 1);
+
+    if (pos < 1) {
+        sendError(sock);
+        close(client_sock);
+        return;
+    }
+
+    type = t_filename.substr(pos);
+    if (type == ".html") {
+        sendHTML(sock, filename);
+    }
+    else if (type == ".jpg") {
+        sendJPG(sock, filename);
+    }
+    else if (type == ".ico") {
+        sendICO(sock, filename);
+    }
+    else {
+        sendError(sock);
+        close(client_sock);
+        return;
+    }
+}
+
 //发送数据
 void sendData(int *sock, char *filename) {
     int client_sock = *sock;
@@ -255,10 +311,11 @@ void sendData(int *sock, char *filename) {
     strcpy(type, strtok(NULL, "."));
 
     // a test of open file
-    string temp(filename);
-    temp = "./" + temp;
-    filename = temp.c_str;
-    
+    // string temp(filename);
+    // temp = "./" + temp;
+    // filename = temp.c_str;
+    // strcpy(filename, temp.c_str());
+
     //多路选择数据类型，多类型可使用switch代替
     if (0 == strcmp(type, "html")) {
         sendHTML(sock, filename);

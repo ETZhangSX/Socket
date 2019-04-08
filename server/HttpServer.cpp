@@ -95,7 +95,8 @@ void HttpServer::parseURI() {
 		fileName_ = "index.html";
 	}
 	else {
-		path = path.substr(1);
+		// path = path.substr(1);
+		path = "." + path;
 		size_t posm = path.find('?');
 		if (posm >= 0) {
 			fileName_ = path.substr(0, posm);
@@ -152,6 +153,9 @@ void HttpServer::requestHandling() {
 	}
 }
 
+string HttpServer::getType() {
+}
+
 string HttpServer::getHeader(string content_type, int content_length) {
 	string header = "HTTP/1.1 200 OK\r\n";
     
@@ -166,6 +170,7 @@ string HttpServer::getHeader(string content_type, int content_length) {
 
 //处理GET请求
 void HttpServer::handleGET() {
+
 }
 
 //处理POST请求
