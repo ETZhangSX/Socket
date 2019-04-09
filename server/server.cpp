@@ -44,10 +44,13 @@ void handleError(const string &msg);
 void epollHandling(int epfd, int pos);
 void requestHandling(int *sock);
 void sendError(int *sock);
+void t_sendData(int *sock, char *filename);
 void sendData(int *sock, char *filename);
 void sendHTML(int *sock, char *filename);
 void sendJPG(int *sock, char *filename);
 void sendICO(int *sock, char *filename);
+
+void sendHelp(FILE *fp, int *sock);
 
 int main() {
     //声明套接字
@@ -186,7 +189,10 @@ void epollHandling(int epfd, int pos) {
         }
 
         if (t_filename == "/" || t_filename == "/home") {
-            t_filename == "./index.html";
+            t_filename = "./index.html";
+        }
+        else {
+            t_filename = "." + t_filename;
         }
 
         if (t_method != "GET") {
@@ -366,7 +372,7 @@ void sendJPG(int *sock, char *filename) {
     int client_sock = *sock;
     char buffer[buffer_size];
     FILE *fp;
-    FILE *fw;
+    // FILE *fw;
     fp = fopen(filename, "rb");
 
     fseek(fp, 0L, SEEK_END);
@@ -398,18 +404,38 @@ void sendJPG(int *sock, char *filename) {
 
 
     printf("Sending img\n");
-    fw = fdopen(client_sock, "wb");
+    // fw = fdopen(client_sock, "wb");
 
     fseek(fp, 0L, SEEK_SET);
 
     //循环读写，确保文件读完
+    sendHelp(fp, sock);
+    // while (!feof(fp)) {
+    //     fread(buffer, sizeof(char), sizeof(buffer), fp);
+    //     fwrite(buffer, sizeof(char), sizeof(buffer), fw);
+    // }
+    
+    // printf("Finish sending\n");
+
+    // fclose(fw);
+    // fclose(fp);
+    // close(client_sock);
+}
+
+void sendHelp(FILE *fp, int *sock) {
+    int client_sock = *sock;
+    FILE *fw;
+
+    char buffer[buffer_size];
+
+    fw = fdopen(client_sock, "wb");
+
     while (!feof(fp)) {
         fread(buffer, sizeof(char), sizeof(buffer), fp);
         fwrite(buffer, sizeof(char), sizeof(buffer), fw);
     }
-    
-    printf("Finish sending\n");
 
+    cout << "Finish sending\n";
     fclose(fw);
     fclose(fp);
     close(client_sock);

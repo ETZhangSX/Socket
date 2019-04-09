@@ -18,6 +18,38 @@
 
 using namespace std;
 
+int HttpServer::MAX_NFDS = 500;
+int HttpServer::buffer_size = 1<<20;
+
+pthread_once_t HttpServer::once_control = PTHREAD_ONCE_INIT;
+unordered_map<string, string> HttpServer::fileType;
+
+void HttpServer::fileTypeInit() {
+	fileType[".html"] = "text/html";
+    fileType[".avi"] = "video/x-msvideo";
+    fileType[".bmp"] = "image/bmp";
+    fileType[".c"] = "text/plain";
+    fileType[".doc"] = "application/msword";
+    fileType[".gif"] = "image/gif";
+    fileType[".gz"] = "application/x-gzip";
+    fileType[".htm"] = "text/html";
+    fileType[".ico"] = "image/x-icon";
+    fileType[".jpg"] = "image/jpeg";
+    fileType[".png"] = "image/png";
+    fileType[".txt"] = "text/plain";
+    fileType[".mp3"] = "audio/mp3";
+    fileType["default"] = "text/html";
+}
+
+string HttpServer::getType(const string &filetype) {
+	pthread_once(&once_control, HttpServer::fileTypeInit);
+	if (fileType.find(filetype) == fileType.end()) {
+		return fileType["default"];
+	}
+	else {
+		return fileType[filetype];
+	}
+}
 
 void HttpServer::start() {
 	int listen_sock;
@@ -143,19 +175,17 @@ void HttpServer::parseHeader() {
 //处理请求
 void HttpServer::requestHandling() {
 	if (method_ == METHOD_POST) {
-
+		handlePOST();
 	}
 	else if (method_ == METHOD_GET) {
-
+		handleGET();
 	}
 	else if (method_ == METHOD_HEAD) {
-
+		handleHEAD();
 	}
 }
 
-string HttpServer::getType() {
-}
-
+//生成响应头
 string HttpServer::getHeader(string content_type, int content_length) {
 	string header = "HTTP/1.1 200 OK\r\n";
     
@@ -170,7 +200,50 @@ string HttpServer::getHeader(string content_type, int content_length) {
 
 //处理GET请求
 void HttpServer::handleGET() {
+	FILE *fp;
+	char buffer[buffer_size];
+	string filetype;
+	string readOpenMode;
+	string header;
 
+	int pos = fileName_.find('.', 1);
+	if (pos < 0) {
+		//TODO:错误处理
+		return;
+	}
+
+	filetype = fileName_.substr(pos);
+
+	if (filetype == ".html" || filetype == ".htm") {
+		readOpenMode = "r";
+	}
+	else {
+		readOpenMode = "rb";
+	}
+
+	fp = fopen(fileName_, readOpenMode);
+
+	if (NULL == fp) {
+		//TODO:文件打开错误
+		return;
+	}
+
+	fseek(fp, 0L, SEEK_END);
+	int filelen = ftell(fp);
+
+	outBuffer_ = getHeader(getType(filetype), filelen);
+
+	cout << "Reading file: " << fileName_ << endl;
+
+	fseek(fp, 0L, SEEK_SET);
+
+	while (!feof(fp)) {
+		fread(buffer, sizeof(char), sizeof(buffer), fp);
+		outBuffer_ += string(buffer, buffer + sizeof(buffer));
+	}
+
+	cout << "Finish reading\n";
+	fclose(fp);
 }
 
 //处理POST请求
