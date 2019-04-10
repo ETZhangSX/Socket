@@ -18,7 +18,6 @@
 #include <map>
 #include <memory>
 
-
 enum HttpMethod
 {
     METHOD_POST = 1,

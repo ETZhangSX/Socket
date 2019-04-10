@@ -225,6 +225,7 @@ void HttpServer::handleGET() {
 
 	if (NULL == fp) {
 		//TODO:文件打开错误
+		fclose(fp);
 		return;
 	}
 
@@ -237,10 +238,14 @@ void HttpServer::handleGET() {
 
 	fseek(fp, 0L, SEEK_SET);
 
-	while (!feof(fp)) {
-		fread(buffer, sizeof(char), sizeof(buffer), fp);
-		outBuffer_ += string(buffer, buffer + sizeof(buffer));
-	}
+	// while (!feof(fp)) {
+	// 	fread(buffer, sizeof(char), sizeof(buffer), fp);
+	// 	outBuffer_ += string(buffer, buffer + sizeof(buffer));
+	// }
+
+	// 上述发送文件过程对相对大的文件内存可能不够，故采用边读边发
+	// 发送响应头和文件
+	handleWrite(fp);
 
 	cout << "Finish reading\n";
 	fclose(fp);
@@ -258,7 +263,10 @@ void HttpServer::handleRead() {
 	
 }
 
-void HttpServer::handleWrite() {}
+void HttpServer::handleWrite(FILE *fp) {
+	writen(fd_, outBuffer_);
+	writeFile(fp, &fd_);
+}
 
 void HttpServer::connection() {}
 
