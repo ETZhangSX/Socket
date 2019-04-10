@@ -79,6 +79,7 @@ ssize_t writen(int fd, string &outBuffer) {
 	return write_sum;
 }
 
+// 边读边发文件
 void writeFile(FILE *fp, int *sock) {
 	int client_sock = *sock;
     FILE *fw;

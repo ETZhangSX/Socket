@@ -51,6 +51,10 @@ string HttpServer::getType(const string &filetype) {
 	}
 }
 
+HttpServer::HttpServer(int fd): fd_(fd) {
+
+}
+
 void HttpServer::start() {
 	int listen_sock;
 		//epoll句柄
@@ -260,7 +264,23 @@ void HttpServer::handleHEAD() {
 }
 
 void HttpServer::handleRead() {
-	
+	bool isZero = false;
+	int read_num = readn(fd_, inBuffer_, isZero);
+
+	cout << "Request line: \n" << inBuffer_;
+
+	if (read_num < 0) {
+		perror("Readn() error");
+		// 处理错误
+		return;
+	}
+	else if (isZero) {
+		if (read_num == 0) {
+			perror("No data");
+			return;
+		}
+	}
+
 }
 
 void HttpServer::handleWrite(FILE *fp) {

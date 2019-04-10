@@ -51,7 +51,7 @@ private:
 	void handleHEAD();
 
 	void handleRead();
-	void handleWrite();
+	void handleWrite(FILE *fp);
 
 	static std::string getType(const std::string &filetype);
 	static void fileTypeInit();
