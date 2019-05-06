@@ -37,4 +37,4 @@ private:
 // 直接调用lock与unlock，无需创建新类
 class MutexLockGuard {
 	explicit MutexLockGuard(MutexLock &_mutex);
-}
+};

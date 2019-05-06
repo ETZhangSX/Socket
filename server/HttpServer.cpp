@@ -1,26 +1,28 @@
 /*
 ** HttpServer.cpp
-** 
+** ETZhangSX
 **/
+#include "HttpServer.h"
 #include <iostream>
 #include <cstring>
 #include <cstdlib>
 #include <unistd.h>
 #include <sys/socket.h>
-#include <sys/epoll.h>
 #include <netinet/in.h>
 #include <fcntl.h>
 #include <errno.h>
 #include <arpa/inet.h>
 #include <string>
 #include <sstream>
-#include "HttpServer.h"
+
 
 using namespace std;
 
+const __uint32_t DEFAULT_EVENT = EPOLLIN | EPOLLET | EPOLLONESHOT;
 int HttpServer::MAX_NFDS = 500;
 int HttpServer::buffer_size = 1<<20;
 
+// 只初始化一次
 pthread_once_t HttpServer::once_control = PTHREAD_ONCE_INIT;
 unordered_map<string, string> HttpServer::fileType;
 
@@ -51,10 +53,18 @@ string HttpServer::getType(const string &filetype) {
 	}
 }
 
-HttpServer::HttpServer(int fd): fd_(fd) {
-
+HttpServer::HttpServer(EventLoop* loop, int fd): 
+	loop_(loop),
+	channel_(new Channel(loop, fd)),
+	method_(METHOD_GET),
+	http_version_(HTTP_11),
+	fd_(fd) {
+	channel_->setReadHandler(bind(&HttpServer::handleRead, this));
+	channel_->setWriteHandler(bind(&HttpServer::handleWrite, this));
+	channel_->setConnHandler(bind(&HttpServer::connection, this));
 }
 
+/*
 void HttpServer::start() {
 	int listen_sock;
 		//epoll句柄
@@ -83,15 +93,21 @@ void HttpServer::start() {
 		server_addr.sin_addr.s_addr = htonl(INADDR_ANY);
 		server_addr.sin_port = htons(port);
 }
+*/
+
+void HttpServer::reset() {
+	fileName_.clear();
+	header_.clear();
+}
 
 //解析URL
-void HttpServer::parseURI() {
+URIState HttpServer::parseURI() {
 	string &uri = inBuffer_;
 	// string对象的find(string &str, int pos)函数在调用的string对象
 	//中查找pos开始后的匹配str的第一个位置
 	size_t pos = uri.find('\r', 0);
 	if (pos < 0) {
-		return;
+		return PARSE_URI_ERROR;
 	}
 
 	//截取请求行
@@ -123,7 +139,7 @@ void HttpServer::parseURI() {
 			break;
 
 		default:
-			break;
+			return PARSE_URI_ERROR;
 	}
 
 	//get filename
@@ -146,7 +162,9 @@ void HttpServer::parseURI() {
 	else if (http_version.find("1.1") > 0) {
 		http_version_ = HTTP_11;
 	}
-	else return;
+	else return PARSE_URI_ERROR;
+
+	return PARSE_URI_SUCCESS;
 }
 
 //分析头部
@@ -154,9 +172,12 @@ void HttpServer::parseHeader() {
 	string &headers = inBuffer_;
 	string key_value;
 	int pos = headers.find('\r');
+	int k_pos = 0;
+
+	//获取表头所有信息
 	while (pos > 0) {
 		key_value = headers.substr(0, pos);
-		int k_pos = key_value.find(':');
+		k_pos = key_value.find(':');
 		header_[key_value.substr(0, k_pos)] = key_value.substr(k_pos + 2);
 
 		if (headers.length() > pos + 2) {
@@ -177,16 +198,17 @@ void HttpServer::parseHeader() {
 }
 
 //处理请求
-void HttpServer::requestHandling() {
+AnalysisState HttpServer::requestHandling() {
 	if (method_ == METHOD_POST) {
-		handlePOST();
+		return handlePOST();
 	}
 	else if (method_ == METHOD_GET) {
-		handleGET();
+		return handleGET();
 	}
 	else if (method_ == METHOD_HEAD) {
-		handleHEAD();
+		return handleHEAD();
 	}
+	else return ANALYSIS_ERROR;
 }
 
 //生成响应头
@@ -203,7 +225,7 @@ string HttpServer::getHeader(string content_type, int content_length) {
 }
 
 //处理GET请求
-void HttpServer::handleGET() {
+AnalysisState HttpServer::handleGET() {
 	FILE *fp;
 	char buffer[buffer_size];
 	string filetype;
@@ -212,11 +234,9 @@ void HttpServer::handleGET() {
 
 	int pos = fileName_.find('.', 1);
 	if (pos < 0) {
-		//TODO:错误处理
-		return;
+		filetype = "default";
 	}
-
-	filetype = fileName_.substr(pos);
+	else filetype = fileName_.substr(pos);
 
 	if (filetype == ".html" || filetype == ".htm") {
 		readOpenMode = "r";
@@ -230,7 +250,8 @@ void HttpServer::handleGET() {
 	if (NULL == fp) {
 		//TODO:文件打开错误
 		fclose(fp);
-		return;
+		handleError(fd_, 404, "Not Found");
+		return ANALYSIS_ERROR;
 	}
 
 	fseek(fp, 0L, SEEK_END);
@@ -253,14 +274,18 @@ void HttpServer::handleGET() {
 
 	cout << "Finish reading\n";
 	fclose(fp);
+
+	return ANALYSIS_SUCCESS;
 }
 
 //处理POST请求
-void HttpServer::handlePOST() {
+AnalysisState HttpServer::handlePOST() {
+	return ANALYSIS_SUCCESS;
 }
 
 //处理HEAD请求
-void HttpServer::handleHEAD() {
+AnalysisState HttpServer::handleHEAD() {
+	return ANALYSIS_SUCCESS;
 }
 
 void HttpServer::handleRead() {
@@ -272,6 +297,7 @@ void HttpServer::handleRead() {
 	if (read_num < 0) {
 		perror("Readn() error");
 		// 处理错误
+		handleError(fd_, 404, "Bad Request");
 		return;
 	}
 	else if (isZero) {
@@ -281,15 +307,80 @@ void HttpServer::handleRead() {
 		}
 	}
 
+	URIState &&flag = this->parseURI();
+	if (flag == PARSE_URI_ERROR) {
+		perror("parseURI error");
+		inBuffer_.clear();
+		handleError(fd_, 404, "Bad Request");
+		return;
+	}
+	this->parseHeader();
+	AnalysisState &&req_flag = this->requestHandling();
+	if (req_flag == ANALYSIS_SUCCESS) {
+		this->reset();
+	}
 }
 
 void HttpServer::handleWrite(FILE *fp) {
-	writen(fd_, outBuffer_);
-	writeFile(fp, &fd_);
+	__uint32_t &events_ = channel_->getEvents();
+
+	if (writen(fd_, outBuffer_) < 0) {
+		perror("writen error");
+		events_ = 0;
+	}
+	else writeFile(fp, &fd_);
+
+	if (outBuffer_.size() > 0) {
+		events_ |= EPOLLOUT;
+	}
 }
 
-void HttpServer::connection() {}
+void HttpServer::connection() {
+	__uint32_t &events_ = channel_->getEvents();
+	if (events_ != 0) {
+		if ((events_ & EPOLLIN) && (events_ & EPOLLOUT)) {
+			events_ = __uint32_t(0);
+			events_ |= EPOLLOUT;
+		}
+		events_ |= EPOLLET;
+		loop_->updatePoller(channel_);
+	}
+	else {
+		events_ |= (EPOLLIN | EPOLLET);
+		loop_->updatePoller(channel_);
+	}
+	loop_->runInLoop(bind(&HttpServer::handleClose, shared_from_this()));
+}
 
-//处理错误
-void HttpServer::errorHandling() {}
+//处理错误，回复错误信息
+void HttpServer::handleError(int fd, int err_num, string msg) {
+	msg = " " + msg;
+    char send_buff[4096];
+    string body_buff, header_buff;
+    body_buff += "<html><title>哎~出错了</title>";
+    body_buff += "<body bgcolor=\"ffffff\">";
+    body_buff += to_string(err_num) + msg;
+    body_buff += "<hr><em> ET Web Server</em>\n</body></html>";
 
+    header_buff += "HTTP/1.1 " + to_string(err_num) + msg + "\r\n";
+    header_buff += "Content-Type: text/html\r\n";
+    header_buff += "Connection: Close\r\n";
+    header_buff += "Content-Length: " + to_string(body_buff.size()) + "\r\n";
+    header_buff += "Server: ET Web Server\r\n";;
+    header_buff += "\r\n";
+    // 错误处理不考虑writen不完的情况
+    sprintf(send_buff, "%s", header_buff.c_str());
+    writen(fd, send_buff, strlen(send_buff));
+    sprintf(send_buff, "%s", body_buff.c_str());
+    writen(fd, send_buff, strlen(send_buff));
+}
+
+void HttpServer::handleClose() {
+	shared_ptr<HttpServer> guard(shared_from_this());
+	loop_->removeFromPoller(channel_);
+}
+
+void HttpServer::newEvent() {
+	channel_->setEvents(DEFAULT_EVENT);
+	loop_->addToPoller(channel_);
+}

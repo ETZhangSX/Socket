@@ -1,8 +1,9 @@
 /*
 ** HttpServer.h
-** 
+** ETZhangSX
 **/
 #pragma once
+#include "Channel.h"
 #include <iostream>
 #include <cstring>
 #include <cstdlib>
@@ -18,11 +19,34 @@
 #include <map>
 #include <memory>
 
+class EventLoop;
+class Channel;
+
 enum HttpMethod
 {
     METHOD_POST = 1,
     METHOD_GET,
     METHOD_HEAD
+};
+
+enum URIState
+{
+    PARSE_URI_AGAIN = 1,
+    PARSE_URI_ERROR,
+    PARSE_URI_SUCCESS,
+};
+
+enum HeaderState
+{
+    PARSE_HEADER_SUCCESS = 1,
+    PARSE_HEADER_AGAIN,
+    PARSE_HEADER_ERROR
+};
+
+enum AnalysisState
+{
+    ANALYSIS_SUCCESS = 1,
+    ANALYSIS_ERROR
 };
 
 enum HttpVersion
@@ -31,32 +55,40 @@ enum HttpVersion
     HTTP_11
 };
 
-class HttpServer {
+class HttpServer : public std::enable_shared_from_this<HttpServer> {
 public:
-	HttpServer(){}
-	~HttpServer(){}
+	HttpServer(EventLoop* loop, int fd){}
+	~HttpServer(){ close(fd_); }
+	std::shared_ptr<Channel> getChannel() { return channel_; }
+	EventLoop* getLoop() { return loop_; }
 
-	void start();
+	// void start();
+	void reset();
 	
-	void parseURI();
+	URIState parseURI();
 	void parseHeader();
-	void requestHandling();
+	AnalysisState requestHandling();
 	void connection();
 	void errorHandling();
+	void newEvent();
 	
 private:
 	std::string getHeader();
-	void handleGET();
-	void handlePOST();
-	void handleHEAD();
+	AnalysisState handleGET();
+	AnalysisState handlePOST();
+	AnalysisState handleHEAD();
 
 	void handleRead();
 	void handleWrite(FILE *fp);
+	void handleError(int fd, int err_num, std::string msg);
+	void handleClose();
 
 	static std::string getType(const std::string &filetype);
 	static void fileTypeInit();
 
 	struct epoll_event ev, event[MAX_NFDS];
+	EventLoop* loop_;
+	std::shared_ptr<Channel> channel_;
 	int fd_;
 	std::string inBuffer_;
 	std::string outBuffer_;
