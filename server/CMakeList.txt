@@ -1,5 +1,0 @@
-# 指定cmake最低版本
-cmake_minimum_required(VERSION 3.2)
-
-# project name，指定项目的名称
-PROJECT(
