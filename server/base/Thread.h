@@ -27,7 +27,7 @@ private:
 	void setDefaultName();
 	bool started_;
 	bool joined_;
-	pthread_t pthreadId;
+	pthread_t pthreadId_;
 	pid_t tid_;
 	ThreadFunc func_;
 	std::string name_;

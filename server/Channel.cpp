@@ -21,7 +21,7 @@ Channel::Channel(EventLoop *loop):
 Channel::Channel(EventLoop *loop, int fd):
     loop_(loop),
     fd_(fd),
-    events_(0);
+    events_(0),
     lastEvents_(0)
 {}
 

@@ -9,7 +9,9 @@
 #include "Channel.h"
 #include <vector>
 #include <functional>
+#include <sys/socket.h>
 #include <iostream>
+#include <assert.h>
 
 using namespace std;
 
@@ -27,20 +29,20 @@ public:
         assert(isInLoopThread());
     }
 
-    void shutDown(shared_ptr<Channel> channel) {
+    void shutDown(SP_Channel channel) {
         // shutDownWR(channel->getFd());
         shutdown(channel->getFd(), SHUT_WR);
     }
 
-    void removeFromPoller(shared_ptr<Channel> channel) {
+    void removeFromPoller(SP_Channel channel) {
         poller_->epoll_del(channel);
     }
 
-    void updatePoller(shared_ptr<Channel> channel) {
+    void updatePoller(SP_Channel channel) {
         poller_->epoll_mod(channel);
     }
 
-    void addToPoller(shared_ptr<Channel> channel) {
+    void addToPoller(SP_Channel channel) {
         poller_->epoll_add(channel);
     }
 

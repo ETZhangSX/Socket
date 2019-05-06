@@ -15,7 +15,9 @@ public:
     EventLoop* getLoop() const { return loop_; }
     void start();
     void newConn();
-    void curConn();
+    void curConn() {
+        loop_->updatePoller(acceptChannel_);
+    }
 
 private:
     EventLoop* loop_;
@@ -26,4 +28,4 @@ private:
     int port_;
     int listenFd_;
     static const int MAXFD = 1000;
-}
+};

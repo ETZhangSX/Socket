@@ -10,6 +10,8 @@
 #include <sys/epoll.h>
 #include <memory>
 
+// class Channel;
+
 class Epoll {
 public:
     Epoll();
@@ -17,12 +19,12 @@ public:
     void epoll_add(SP_Channel request);
     void epoll_mod(SP_Channel request);
     void epoll_del(SP_Channel request);
-    std::vector<std::shared_ptr<Channel>> poll();
+    std::vector<SP_Channel> poll();
     
 private:
     static const int MAXFDS = 10000;
     int epollFd_;
     std::vector<epoll_event> events_;
-    std::shared_ptr<Channel> fd_channel_[MAXFDS];
+    SP_Channel fd_channel_[MAXFDS];
     std::shared_ptr<HttpServer> fd_http_[MAXFDS];
-}
+};

@@ -23,4 +23,5 @@ void CountDownLatch::countDown() {
 	count_--;
 	if (count_ == 0)
 		condition_.notifyAll();
+	mutex_.unlock();
 }

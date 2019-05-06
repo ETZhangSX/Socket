@@ -24,8 +24,8 @@ EventLoop::EventLoop() :
     looping_(false),
     wakeupFd_(creatEventfd()),
     quit_(false),
-    eventHandling(false),
-    callingPendingFunctors(false),
+    eventHandling_(false),
+    callingPendingFunctors_(false),
     threadId_(CurrentThread::tid()),
     pwakeupChannel_(new Channel(this, wakeupFd_)) {
         if (t_loopInThisThread) {
@@ -54,7 +54,7 @@ void EventLoop::wakeup() {
     uint64_t one = 1;
     ssize_t n = writen(wakeupFd_, (char *)(&one), sizeof one);
     if (n != sizeof one) {
-        cour << "wakeup writes " << n << " bytes\n";
+        cout << "wakeup writes " << n << " bytes\n";
     }
 }
 

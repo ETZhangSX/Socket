@@ -21,4 +21,4 @@ private:
     Thread thread_;
     MutexLock mutex_;
     Condition cond_;
-}
+};

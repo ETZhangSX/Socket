@@ -80,7 +80,7 @@ vector<SP_Channel> Epoll::poll() {
             perror("epoll wait error");
         }
         vector<SP_Channel> req_data;
-        for (int ii = 0; i < event_count; i++) {
+        for (int i = 0; i < event_count; i++) {
             int fd = events_[i].data.fd;
             SP_Channel cur_req = fd_channel_[fd];
 

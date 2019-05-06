@@ -3,18 +3,10 @@
 ** ETZhangSX
 **/
 #pragma once
-#include "Channel.h"
 #include <iostream>
-#include <cstring>
-#include <cstdlib>
 #include <unistd.h>
-#include <sys/socket.h>
-#include <sys/epoll.h>
-#include <netinet/in.h>
-#include <fcntl.h>
-#include <errno.h>
-#include <arpa/inet.h>
 #include <string>
+#include <sys/epoll.h>
 #include <unordered_map>
 #include <map>
 #include <memory>
@@ -57,7 +49,7 @@ enum HttpVersion
 
 class HttpServer : public std::enable_shared_from_this<HttpServer> {
 public:
-	HttpServer(EventLoop* loop, int fd){}
+	HttpServer(EventLoop* loop, int fd);
 	~HttpServer(){ close(fd_); }
 	std::shared_ptr<Channel> getChannel() { return channel_; }
 	EventLoop* getLoop() { return loop_; }
@@ -73,23 +65,23 @@ public:
 	void newEvent();
 	
 private:
-	std::string getHeader();
+	std::string getHeader(std::string content_type, int content_length);
 	AnalysisState handleGET();
 	AnalysisState handlePOST();
 	AnalysisState handleHEAD();
 
 	void handleRead();
-	void handleWrite(FILE *fp);
+	void handleWrite();
 	void handleError(int fd, int err_num, std::string msg);
 	void handleClose();
 
 	static std::string getType(const std::string &filetype);
 	static void fileTypeInit();
 
-	struct epoll_event ev, event[MAX_NFDS];
 	EventLoop* loop_;
 	std::shared_ptr<Channel> channel_;
 	int fd_;
+	FILE* fp_;
 	std::string inBuffer_;
 	std::string outBuffer_;
 	std::string fileName_;
@@ -98,8 +90,7 @@ private:
 	HttpVersion http_version_;
 	HttpMethod method_;
 
-	static const int MAX_NFDS;
 	static const int buffer_size;
 	static std::unordered_map<std::string, std::string> fileType;
 	static pthread_once_t once_control;
-}
+};

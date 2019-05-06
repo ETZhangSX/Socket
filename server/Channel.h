@@ -3,8 +3,6 @@
 ** ETZhangSX
 */
 #pragma once
-#include "EventLoop.h"
-#include "HttpServer.h"
 #include <string>
 #include <unordered_map>
 #include <memory>
@@ -36,6 +34,7 @@ public:
 
     std::shared_ptr<HttpServer> getHolder() {
         std::shared_ptr<HttpServer> ret(holder_.lock());
+        return ret;
     }
 
     void setReadHandler(CallBack &&readHandler) {
@@ -116,3 +115,5 @@ private:
 
     std::weak_ptr<HttpServer> holder_;
 };
+
+typedef std::shared_ptr<Channel> SP_Channel;

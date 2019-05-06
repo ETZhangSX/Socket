@@ -3,15 +3,13 @@
 ** ETZhangSX
 **/
 #include "HttpServer.h"
+#include "Channel.h"
+#include "Util.h"
+#include "EventLoop.h"
 #include <iostream>
-#include <cstring>
-#include <cstdlib>
-#include <unistd.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
 #include <fcntl.h>
 #include <errno.h>
-#include <arpa/inet.h>
+#include <cstring>
 #include <string>
 #include <sstream>
 
@@ -19,8 +17,7 @@
 using namespace std;
 
 const __uint32_t DEFAULT_EVENT = EPOLLIN | EPOLLET | EPOLLONESHOT;
-int HttpServer::MAX_NFDS = 500;
-int HttpServer::buffer_size = 1<<20;
+const int HttpServer::buffer_size = 1<<20;
 
 // 只初始化一次
 pthread_once_t HttpServer::once_control = PTHREAD_ONCE_INIT;
@@ -127,19 +124,17 @@ URIState HttpServer::parseURI() {
 	input >> path;
 	input >> http_version;
 
-	switch (method) {
-		case "GET":
-			method_ = METHOD_GET;
-			break;
-		case "POST":
-			method_ = METHOD_POST;
-			break;
-		case "HEAD":
-			method_ = METHOD_HEAD;
-			break;
-
-		default:
-			return PARSE_URI_ERROR;
+	if ("GET" == method) {
+		method_ = METHOD_GET;
+	}
+	else if ("POST" == method) {
+		method_ = METHOD_POST;
+	}
+	else if ("HEAD" == method) {
+		method_ = METHOD_HEAD;
+	}
+	else {
+		return PARSE_URI_ERROR;
 	}
 
 	//get filename
@@ -215,7 +210,7 @@ AnalysisState HttpServer::requestHandling() {
 string HttpServer::getHeader(string content_type, int content_length) {
 	string header = "HTTP/1.1 200 OK\r\n";
     
-    header += "Server: A Simple Web Server\r\n"
+    header += "Server: A Simple Web Server\r\n";
     header += "Content-Type: " + content_type + "\r\n";
     header += "Content-Range: bytes\r\n";
     header += "Content-Length: " + to_string(content_length);
@@ -245,7 +240,7 @@ AnalysisState HttpServer::handleGET() {
 		readOpenMode = "rb";
 	}
 
-	fp = fopen(fileName_, readOpenMode);
+	fp = fopen(fileName_.c_str(), readOpenMode.c_str());
 
 	if (NULL == fp) {
 		//TODO:文件打开错误
@@ -270,9 +265,10 @@ AnalysisState HttpServer::handleGET() {
 
 	// 上述发送文件过程对相对大的文件内存可能不够，故采用边读边发
 	// 发送响应头和文件
-	handleWrite(fp);
-
+	fp_ = fp;
+	handleWrite();
 	cout << "Finish reading\n";
+	fp_ = NULL;
 	fclose(fp);
 
 	return ANALYSIS_SUCCESS;
@@ -321,15 +317,16 @@ void HttpServer::handleRead() {
 	}
 }
 
-void HttpServer::handleWrite(FILE *fp) {
+void HttpServer::handleWrite() {
 	__uint32_t &events_ = channel_->getEvents();
 
 	if (writen(fd_, outBuffer_) < 0) {
 		perror("writen error");
 		events_ = 0;
 	}
-	else writeFile(fp, &fd_);
-
+	else if (fp_ != NULL) {
+		writeFile(fp_, &fd_);
+	}
 	if (outBuffer_.size() > 0) {
 		events_ |= EPOLLOUT;
 	}

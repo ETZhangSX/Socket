@@ -15,7 +15,6 @@ public:
 	explicit CountDownLatch(int count);
 	void wait();
 	void countDown();
-	~CountDownLatch();
 	
 private:
 	mutable MutexLock mutex_;

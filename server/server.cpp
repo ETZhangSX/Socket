@@ -8,7 +8,9 @@
 
 #include "Server.h"
 #include "Util.h"
+#include "HttpServer.h"
 #include <functional>
+#include <string.h>
 #include <netinet/in.h>
 #include <sys/socket.h>
 #include <arpa/inet.h>
@@ -23,7 +25,7 @@ Server::Server(EventLoop* loop, int threadNumber, int port):
     listenFd_(socket_bind_listen(port_)) {
     
     acceptChannel_->setFd(listenFd_);
-    handle_for_sigpipe();
+    handle_sigpipe();
     if (setSocketNonBlocking(listenFd_) < 0) {
         perror("set socket non block failed");
         abort();
@@ -35,7 +37,7 @@ void Server::start() {
     acceptChannel_->setEvents(EPOLLIN | EPOLLET);
     acceptChannel_->setReadHandler(bind(&Server::newConn, this));
     acceptChannel_->setConnHandler(bind(&Server::curConn, this));
-    loop_->addToPoller(acceptChannel_, 0);
+    loop_->addToPoller(acceptChannel_);
     started_ = true;
 }
 
