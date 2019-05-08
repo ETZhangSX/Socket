@@ -216,7 +216,6 @@ AnalysisState HttpServer::handleGET() {
 
 	if (NULL == fp) {
 		//TODO:文件打开错误
-		fclose(fp);
 		handleError(fd_, 404, "Not Found");
 		return ANALYSIS_ERROR;
 	}
