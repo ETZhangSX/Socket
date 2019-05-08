@@ -1,4 +1,5 @@
 .DS_Store
 ./server/.DS_Store
+.vscode/
+.idea/
 .vscode
-.idea
