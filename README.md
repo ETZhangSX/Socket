@@ -17,3 +17,4 @@
     - 使用智能指针代替裸指针，减少内存泄漏可能性
 
 ## 模型
+![Image text](images/model.png)
