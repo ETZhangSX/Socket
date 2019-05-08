@@ -20,7 +20,7 @@ public:
     void epoll_mod(SP_Channel request);
     void epoll_del(SP_Channel request);
     std::vector<SP_Channel> poll();
-    
+    int getEpollFd() { return epollFd_; }
 private:
     static const int MAXFDS = 10000;
     int epollFd_;

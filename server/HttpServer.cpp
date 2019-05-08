@@ -13,10 +13,9 @@
 #include <string>
 #include <sstream>
 
-
 using namespace std;
 
-const __uint32_t DEFAULT_EVENT = EPOLLIN | EPOLLET | EPOLLONESHOT;
+const __uint32_t DEFAULT_EVENT = EPOLLIN | EPOLLET;// | EPOLLONESHOT;
 const int HttpServer::buffer_size = 1<<20;
 
 // 只初始化一次
@@ -53,44 +52,18 @@ string HttpServer::getType(const string &filetype) {
 HttpServer::HttpServer(EventLoop* loop, int fd): 
 	loop_(loop),
 	channel_(new Channel(loop, fd)),
+	fd_(fd),
 	method_(METHOD_GET),
-	http_version_(HTTP_11),
-	fd_(fd) {
+	http_version_(HTTP_11) {
 	channel_->setReadHandler(bind(&HttpServer::handleRead, this));
 	channel_->setWriteHandler(bind(&HttpServer::handleWrite, this));
 	channel_->setConnHandler(bind(&HttpServer::connection, this));
 }
 
-/*
-void HttpServer::start() {
-	int listen_sock;
-		//epoll句柄
-		int epfd;
-		//事件发生数
-		int nfds;
-
-		epfd = epoll_create(MAX_NFDS);
-		struct sockaddr_in server_addr;
-		struct sockaddr_in client_addr;
-
-		socklen_t client_addr_size;
-
-		//创建套接字
-		listen_sock = socket(PE_INET, SOCK_STREAM, 0);
-		ev.data.fd = listen_sock;
-		ev.events = EPOLLIN|EPOLLET;
-		epoll_ctl(epfd, EPOLL_CTL_ADD, server_sock, &ev);
-
-		if (listen_sock == -1) {
-
-		}
-
-		memset(&server_addr, 0, sizeof(server_addr));
-		server_addr.sin_family = AF_INET;
-		server_addr.sin_addr.s_addr = htonl(INADDR_ANY);
-		server_addr.sin_port = htons(port);
+HttpServer::~HttpServer() {
+	cout << "\033[32;1m~HttpServer\033[0m\n";
+	close(fd_);
 }
-*/
 
 void HttpServer::reset() {
 	fileName_.clear();
@@ -222,7 +195,6 @@ string HttpServer::getHeader(string content_type, int content_length) {
 //处理GET请求
 AnalysisState HttpServer::handleGET() {
 	FILE *fp;
-	char buffer[buffer_size];
 	string filetype;
 	string readOpenMode;
 	string header;
@@ -333,6 +305,7 @@ void HttpServer::handleWrite() {
 }
 
 void HttpServer::connection() {
+	cout << "\033[32;1mHttpServer::\033[0mconnection() \n";
 	__uint32_t &events_ = channel_->getEvents();
 	if (events_ != 0) {
 		if ((events_ & EPOLLIN) && (events_ & EPOLLOUT)) {
@@ -373,11 +346,14 @@ void HttpServer::handleError(int fd, int err_num, string msg) {
 }
 
 void HttpServer::handleClose() {
+	cout << "\033[32;1mHttpServer::\033[0mhandleClose() \n";
 	shared_ptr<HttpServer> guard(shared_from_this());
 	loop_->removeFromPoller(channel_);
 }
 
 void HttpServer::newEvent() {
+	cout << "\033[32;1mHttpServer::\033[0mnewEvent() \n";
 	channel_->setEvents(DEFAULT_EVENT);
 	loop_->addToPoller(channel_);
+	cout << "\033[32;1mHttpServer::\033[0mnewEvent() \033[31;1mFinished\033[0m \n";
 }

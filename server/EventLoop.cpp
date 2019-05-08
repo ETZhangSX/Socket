@@ -1,7 +1,6 @@
 /* EventLoop.cpp
 ** ETZhangSX
 */
-
 #include "EventLoop.h"
 #include "Util.h"
 #include <sys/eventfd.h>
@@ -26,8 +25,9 @@ EventLoop::EventLoop() :
     quit_(false),
     eventHandling_(false),
     callingPendingFunctors_(false),
-    threadId_(CurrentThread::tid()),
-    pwakeupChannel_(new Channel(this, wakeupFd_)) {
+    pwakeupChannel_(new Channel(this, wakeupFd_)),
+    poller_(new Epoll()),
+    threadId_(CurrentThread::tid()) {
         if (t_loopInThisThread) {
             cout << "An EventLoop " << t_loopInThisThread << " exists in this thread " << threadId_ << endl;
         }
@@ -38,7 +38,7 @@ EventLoop::EventLoop() :
         pwakeupChannel_->setEvents(EPOLLIN | EPOLLET);
         pwakeupChannel_->setReadHandler(bind(&EventLoop::handleRead, this));
         pwakeupChannel_->setConnHandler(bind(&EventLoop::handleConn, this));
-        //poller_->epoll_add();
+        poller_->epoll_add(pwakeupChannel_);
 }
 
 void EventLoop::handleConn() {
@@ -87,6 +87,7 @@ void EventLoop::addToQueue(Functor&& func) {
 }
 
 void EventLoop::loop() {
+    cout << "\033[32;1mEventLoop::\033[0mloop() " << this->getPollerFd() << '\n';
     assert(!looping_);
     assert(isInLoopThread());
     looping_ = true;
@@ -99,6 +100,7 @@ void EventLoop::loop() {
         ret = poller_->poll();
         eventHandling_ = true;
         for (auto &item: ret) {
+            cout << "\033[32;1mEventLoop::\033[0mEvent Fd: " << item->getFd() << '\n';
             item->handleEvents();
         }
         eventHandling_ = false;
@@ -114,6 +116,8 @@ void EventLoop::doPendingFunctors() {
     mutex_.lock();
     functors.swap(pendingFunctors_);
     mutex_.unlock();
+
+    cout << "EventLoop::doPendingFunctors : " << functors.size() << '\n';
 
     for (size_t i = 0; i < functors.size(); i++) {
         functors[i]();

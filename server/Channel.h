@@ -8,6 +8,7 @@
 #include <memory>
 #include <functional>
 #include <sys/epoll.h>
+#include <iostream>
 
 class EventLoop;
 class HttpServer;
@@ -54,6 +55,7 @@ public:
     }
 
     void handleEvents() {
+        std::cout << "\033[32;1mChannel::\033[0mhandleEvents() " << getFd() << '\n';
         events_ = 0;
         if ((revents_ & EPOLLHUP) && !(revents_ & EPOLLIN)) {
             events_ = 0;

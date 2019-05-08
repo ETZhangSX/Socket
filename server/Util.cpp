@@ -50,7 +50,7 @@ ssize_t readn(int fd, string &inBuffer, bool &isZero) {
 	char buffer[MAX_BUFFER];
 
 	while (true) {
-		if (n_read = read(fd, buffer, MAX_BUFFER) < 0) {
+		if ((n_read = read(fd, buffer, MAX_BUFFER)) < 0) {
 			if (errno == EINTR) {
 				continue;
 			}
@@ -159,13 +159,16 @@ void handle_sigpipe() {
 		return;
 }
 
+//设置socket为非阻塞模式
 int setSocketNonBlocking(int fd) {
 	int flag = fcntl(fd, F_GETFL, 0);
 	if (flag == -1) {
+		cout << "GETFL Failed\n";
 		return -1;
 	}
 	flag |= O_NONBLOCK;
 	if (fcntl(fd, F_SETFL, flag) == -1) {
+		cout << "SETFL Failed\n";
 		return -1;
 	}
 	return 0;
@@ -173,7 +176,7 @@ int setSocketNonBlocking(int fd) {
 
 void handleError(const string &msg) {
     cout << msg;
-    exit(1);
+    // exit(1);
 }
 
 void setTCPNoDelay(int fd) {
@@ -188,11 +191,13 @@ int socket_bind_listen(int port) {
     listenFd = socket(PF_INET, SOCK_STREAM, 0);
     if (listenFd == -1) {
         handleError("socket error");
+		return -1;
     }
 
     int optval = 1;
     if (setsockopt(listenFd, SOL_SOCKET, SO_REUSEADDR, &optval, sizeof(optval)) == -1) {
         handleError("setsocketopt error");
+		return -1;
     }
 
     memset(&listen_addr, 0, sizeof(listen_addr));
@@ -202,9 +207,12 @@ int socket_bind_listen(int port) {
 
     if (bind(listenFd, (struct sockaddr*) &listen_addr, sizeof(listen_addr)) == -1) {
         handleError("bind error");
+		return -1;
     }
 
     if (listen(listenFd, 512) == -1) {
         handleError("listen error");
+		return -1;
     }
+	return listenFd;
 }

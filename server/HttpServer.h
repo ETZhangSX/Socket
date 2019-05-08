@@ -50,11 +50,10 @@ enum HttpVersion
 class HttpServer : public std::enable_shared_from_this<HttpServer> {
 public:
 	HttpServer(EventLoop* loop, int fd);
-	~HttpServer(){ close(fd_); }
+	~HttpServer();
 	std::shared_ptr<Channel> getChannel() { return channel_; }
 	EventLoop* getLoop() { return loop_; }
 
-	// void start();
 	void reset();
 	
 	URIState parseURI();
@@ -87,8 +86,8 @@ private:
 	std::string fileName_;
 	std::string outHeader_;
 	std::map<std::string, std::string> header_;
-	HttpVersion http_version_;
 	HttpMethod method_;
+	HttpVersion http_version_;
 
 	static const int buffer_size;
 	static std::unordered_map<std::string, std::string> fileType;

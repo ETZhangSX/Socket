@@ -14,6 +14,9 @@
 #include <netinet/in.h>
 #include <sys/socket.h>
 #include <arpa/inet.h>
+#include <iostream>
+
+using namespace std;
 
 Server::Server(EventLoop* loop, int threadNumber, int port):
     loop_(loop),
@@ -33,11 +36,15 @@ Server::Server(EventLoop* loop, int threadNumber, int port):
 }
 
 void Server::start() {
+    cout << "Starting Thread Pool\n";
     threadPool_->start();
+    cout << "Start Successfully\nSetup accept channel\n";
     acceptChannel_->setEvents(EPOLLIN | EPOLLET);
     acceptChannel_->setReadHandler(bind(&Server::newConn, this));
     acceptChannel_->setConnHandler(bind(&Server::curConn, this));
+    cout << "Adding channel to poller\n";
     loop_->addToPoller(acceptChannel_);
+    cout << "Add successfully\n";
     started_ = true;
 }
 
@@ -50,7 +57,7 @@ void Server::newConn() {
     while((accept_fd = accept(listenFd_, (struct sockaddr*)&client_addr, &client_addr_len)) > 0) {
         EventLoop* loop = threadPool_->getNextLoop();
         cout << "new connection from " << inet_ntoa(client_addr.sin_addr) << ":" << ntohs(client_addr.sin_port) << '\n';
-
+        cout << "Epoll Fd: " << loop->getPollerFd() << " Accept_fd: " << accept_fd << '\n';
         if (accept_fd > MAXFD) {
             close(accept_fd);
             continue;

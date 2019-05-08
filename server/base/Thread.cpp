@@ -2,7 +2,6 @@
 ** ETZhangSX
 **
 */
-#pragma once
 #include "Thread.h"
 #include "CurrentThread.h"
 #include <memory>
@@ -96,14 +95,17 @@ void Thread::setDefaultName() {
 }
 
 void Thread::start() {
+	cout << "Thread::start()\n";
 	assert(!started_);
 	started_ = true;
+	cout << "Creating ThreadData\n";
 	ThreadData* data = new ThreadData(func_, name_, &tid_, &latch_);
 	if (pthread_create(&pthreadId_, NULL, &startThread, data)) {
 		started_ = false;
 		delete data;
 	}
 	else {
+		cout << "Create Successfully\n";
 		latch_.wait();
 		assert(tid_ > 0);
 	}

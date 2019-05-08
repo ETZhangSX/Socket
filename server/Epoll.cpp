@@ -2,7 +2,6 @@
 ** Epoll.cpp
 ** ETZhangSX
 */
-#pragma once
 #include "Epoll.h"
 #include "Util.h"
 #include <errno.h>
@@ -32,6 +31,8 @@ Epoll::~Epoll() {}
 
 void Epoll::epoll_add(SP_Channel request) {
     int fd = request->getFd();
+    fd_http_[fd] = request->getHolder();
+
     struct epoll_event event;
     event.data.fd = fd;
     event.events = request->getEvents();
@@ -40,6 +41,7 @@ void Epoll::epoll_add(SP_Channel request) {
 
     fd_channel_[fd] = request;
 
+    cout << "\033[32;1mEpoll::\033[0mEpfd:" << epollFd_ << " Fd:" << fd << '\n';
     if (epoll_ctl(epollFd_, EPOLL_CTL_ADD, fd, &event) < 0) {
         perror("epoll_add error");
         fd_channel_[fd].reset();
@@ -48,6 +50,7 @@ void Epoll::epoll_add(SP_Channel request) {
 
 void Epoll::epoll_mod(SP_Channel request) {
     int fd = request->getFd();
+    
     if (!request->EqualAndUpdateLastEvents()) {
         struct epoll_event event;
         event.data.fd = fd;
@@ -74,14 +77,18 @@ void Epoll::epoll_del(SP_Channel request) {
 }
 
 vector<SP_Channel> Epoll::poll() {
+    cout << "Epoll::poll() " << epollFd_ << '\n';
     while (true) {
+        cout << "epoll_wait: " << epollFd_ << '\n';
         int event_count = epoll_wait(epollFd_, &*events_.begin(), events_.size(), EPOLLWAIT_TIME);
         if (event_count < 0) {
             perror("epoll wait error");
         }
         vector<SP_Channel> req_data;
+        cout << epollFd_ << " Events Num: " << event_count << '\n';
         for (int i = 0; i < event_count; i++) {
             int fd = events_[i].data.fd;
+            cout << "\033[32;1mEvent Fd: \033[0m" << fd << endl;
             SP_Channel cur_req = fd_channel_[fd];
 
             if (cur_req) {

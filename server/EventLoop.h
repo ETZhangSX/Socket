@@ -30,7 +30,6 @@ public:
     }
 
     void shutDown(SP_Channel channel) {
-        // shutDownWR(channel->getFd());
         shutdown(channel->getFd(), SHUT_WR);
     }
 
@@ -45,8 +44,10 @@ public:
     void addToPoller(SP_Channel channel) {
         poller_->epoll_add(channel);
     }
-
     
+    int getPollerFd() {
+        return poller_->getEpollFd();
+    }
 private:
     bool looping_;
     int wakeupFd_;
