@@ -18,7 +18,7 @@ using namespace std;
 const int MAX_BUFFER = 1<<20;
 
 ssize_t readn(int fd, void *buff, size_t n) {
-	size_t nleft;
+	size_t nleft = n;
 	ssize_t n_read = 0;
 	ssize_t read_sum = 0;
 	char *buffer = (char*) buff;
