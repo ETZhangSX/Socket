@@ -5,9 +5,9 @@
 #pragma once
 
 #include "Channel.h"
+#include "base/epoll.h"
 #include <vector>
 #include <unordered_map>
-#include <sys/epoll.h>
 #include <memory>
 
 // class Channel;

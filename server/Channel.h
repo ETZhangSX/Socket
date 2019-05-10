@@ -3,11 +3,11 @@
 ** ETZhangSX
 */
 #pragma once
+#include "base/epoll.h"
 #include <string>
 #include <unordered_map>
 #include <memory>
 #include <functional>
-#include <sys/epoll.h>
 #include <iostream>
 
 class EventLoop;
@@ -21,23 +21,27 @@ public:
     Channel(EventLoop* loop);
     Channel(EventLoop* loop, int fd);
     ~Channel();
-    int getFd();
-    void setFd(int fd);
+    int getFd();        //获取连接描述符
+    void setFd(int fd); //设置连接描述符
 
+    //执行绑定的对应函数
     void handleRead();
     void handleWrite();
     void handleConn();
     void handleError();
 
+    //设置持有的HttpServer对象
     void setHolder(std::shared_ptr<HttpServer> holder) {
         holder_ = holder;
     }
 
+    //获取HttpServer对象
     std::shared_ptr<HttpServer> getHolder() {
         std::shared_ptr<HttpServer> ret(holder_.lock());
         return ret;
     }
 
+    //设置绑定对象的函数
     void setReadHandler(CallBack &&readHandler) {
         readHandler_ = readHandler;
     }
@@ -54,6 +58,7 @@ public:
         connHandler_ = connHandler;
     }
 
+    //处理事件
     void handleEvents() {
         std::cout << "\033[32;1mChannel::\033[0mhandleEvents() " << getFd() << '\n';
         events_ = 0;
