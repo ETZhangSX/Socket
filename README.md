@@ -1,4 +1,13 @@
 # HTTP Web Server
+
+[![license](https://img.shields.io/github/license/mashape/apistatus.svg)](https://opensource.org/licenses/MIT)
+
+## 简介
+
+    - 基于C++的Web服务器，实现了GET请求解析
+    - 尚未加入计时器，暂不支持长连接
+    - 通过线程池和Epoll I/O多路复用技术实现该Web Server，具备一定的并发能力
+
 [网站主页 www.etzhang.xyz](http://www.etzhang.xyz) (尚未部署)
 
 调试环境：Ubuntu 18.04
@@ -8,11 +17,6 @@
 工具：cmake, g++4.8.2
 
 最近更新，参考腾讯开源库[libco](https://www.github.com/Tencent/libco.git)的写法，重写了`epoll.h`，识别Apple与FreeBSD，使用`kqueue`重新实现，但MACOSX没有`<sys/eventfd.h>`库的问题尚未解决
-
-## 简介
-    - 基于C++的Web服务器，实现了GET请求解析
-    - 尚未加入计时器，暂不支持长连接
-    - 通过线程池和Epoll I/O多路复用技术实现该Web Server，具备一定的并发能力
 
 ## 要点
     - 使用Epoll的ET模式，非阻塞IO
