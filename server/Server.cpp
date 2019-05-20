@@ -48,6 +48,10 @@ void Server::start() {
     started_ = true;
 }
 
+Server::~Server() {
+    SSL_CTX_free(ctx);
+}
+
 void Server::newConn() {
     struct sockaddr_in client_addr;
     memset(&client_addr, 0, sizeof(client_addr));

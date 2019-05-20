@@ -147,6 +147,7 @@ void writeFile(FILE *fp, int *sock) {
         fwrite(buffer, sizeof(char), sizeof(buffer), fw);
     }
     cout << "Finish sending\n";
+	fclose(fw);
 }
 
 //忽略SIGPIPE防止进程意外退出
@@ -215,4 +216,134 @@ int socket_bind_listen(int port) {
 		return -1;
     }
 	return listenFd;
+}
+
+int ssl_read(SSL* ssl, void *buff, size_t n) {
+	size_t nleft = n;
+	ssize_t n_read = 0;
+	ssize_t read_sum = 0;
+	char *buffer = (char*) buff;
+
+	while (nleft > 0) {
+		if ((n_read = SSL_read(ssl, buffer, nleft)) < 0) {
+			int ret = SSL_get_error(ssl, -1);
+			if (errno == EINTR)
+				n_read = 0;
+			else if (errno == EAGAIN) {
+				return read_sum;
+			}
+			else if (ret == SSL_ERROR_WANT_READ) {
+				n_read = 0;
+			}
+			else {
+				return -1;
+			}
+		}
+		else if (n_read == 0) {
+			break;
+		}
+		read_sum += n_read;
+		nleft -= n_read;
+		buffer += n_read;
+	}
+	return read_sum;
+}
+int ssl_read(SSL* ssl, std::string &inBuffer, bool &isZero) {
+	ssize_t n_read = 0;
+	ssize_t read_sum = 0;
+	char buffer[MAX_BUFFER];
+
+	while (true) {
+		if ((n_read = SSL_read(ssl, buffer, MAX_BUFFER)) < 0) {
+			int ret = SSL_get_error(ssl, -1);
+			if (errno == EINTR) {
+				continue;
+			}
+			else if (errno == EAGAIN) {
+				return read_sum;
+			}
+			else if(ret == SSL_ERROR_WANT_READ) {
+				n_read = 0;
+			}
+			else {
+				perror("read error");
+				return -1;
+			}
+		}
+		else if (n_read == 0) {
+			isZero = true;
+			break;
+		}
+		read_sum += n_read;
+		inBuffer += string(buffer, buffer + n_read);
+	}
+
+	return read_sum;
+}
+int ssl_write(SSL* ssl, void *buff, size_t n) {
+	size_t nleft = n;
+	ssize_t nwritten = 0;
+	ssize_t write_sum = 0;
+
+	char *buffer = (char *) buff;
+
+	while (nleft > 0) {
+		if (( nwritten = SSL_write(ssl, buffer, nleft)) <= 0) {
+			if (nwritten < 0) {
+				if (errno == EINTR) {
+					nwritten = 0;
+					continue;
+				}
+				else if (errno == EAGAIN) {
+					return write_sum;
+				}
+				else return -1;
+			}
+		}
+		write_sum += nwritten;
+		nleft -= nwritten;
+		buffer += nwritten;
+	}
+	return write_sum;
+}
+int ssl_write(SSL* ssl, std::string &outBuffer) {
+	size_t remained_len = outBuffer.size();
+	ssize_t n_write = 0;
+	ssize_t write_sum = 0;
+	const char *ptr = outBuffer.c_str();
+	while (remained_len > 0) {
+		if ((n_write = SSL_write(ssl, ptr, remained_len)) <= 0) {
+			if (n_write < 0) {
+				if (errno == EINTR) {
+					n_write = 0;
+					continue;
+				}
+				else if (errno == EAGAIN) {
+					break;
+				}
+				else {
+					return -1;
+				}
+			}
+		}
+		write_sum += n_write;
+		remained_len -= n_write;
+		ptr += n_write;
+	}
+	if (write_sum == static_cast<int>(outBuffer.size())) {
+		outBuffer.clear();
+	}
+	else {
+		outBuffer = outBuffer.substr(write_sum);
+	}
+	return write_sum;
+}
+void ssl_writeFile(FILE *fp, SSL* ssl) {
+    char buffer[MAX_BUFFER];
+
+    while (!feof(fp)) {
+        fread(buffer, sizeof(char), sizeof(buffer), fp);
+        SSL_write(ssl, buffer, sizeof(buffer));
+    }
+    cout << "Finish sending\n";
 }

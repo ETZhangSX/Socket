@@ -53,8 +53,15 @@ HttpServer::HttpServer(EventLoop* loop, int fd):
 	loop_(loop),
 	channel_(new Channel(loop, fd)),
 	fd_(fd),
+	ssl_(SSL_new(ctx)),
 	method_(METHOD_GET),
 	http_version_(HTTP_11) {
+	if (SSL_set_fd(ssl_, fd) != 1){
+		cout << "SSL set fd error\n";
+	}
+	if (SSL_accept(ssl_) != 1) {
+		cout << "SSL accept error\n";
+	}
 	channel_->setReadHandler(bind(&HttpServer::handleRead, this));
 	channel_->setWriteHandler(bind(&HttpServer::handleWrite, this));
 	channel_->setConnHandler(bind(&HttpServer::connection, this));
@@ -63,6 +70,7 @@ HttpServer::HttpServer(EventLoop* loop, int fd):
 HttpServer::~HttpServer() {
 	cout << "\033[32;1m~HttpServer\033[0m\n";
 	close(fd_);
+	SSL_free(ssl_);
 }
 
 void HttpServer::reset() {
@@ -257,7 +265,7 @@ AnalysisState HttpServer::handleHEAD() {
 
 void HttpServer::handleRead() {
 	bool isZero = false;
-	int read_num = readn(fd_, inBuffer_, isZero);
+	int read_num = ssl_read(ssl_, inBuffer_, isZero);
 
 	cout << "Request line: \n" << inBuffer_;
 
@@ -291,12 +299,12 @@ void HttpServer::handleRead() {
 void HttpServer::handleWrite() {
 	__uint32_t &events_ = channel_->getEvents();
 
-	if (writen(fd_, outBuffer_) < 0) {
+	if (ssl_write(ssl_, outBuffer_) < 0) {
 		perror("writen error");
 		events_ = 0;
 	}
 	else if (fp_ != NULL) {
-		writeFile(fp_, &fd_);
+		ssl_writeFile(fp_, ssl_);
 	}
 	if (outBuffer_.size() > 0) {
 		events_ |= EPOLLOUT;
@@ -339,9 +347,9 @@ void HttpServer::handleError(int fd, int err_num, string msg) {
     header_buff += "\r\n";
     // 错误处理不考虑writen不完的情况
     sprintf(send_buff, "%s", header_buff.c_str());
-    writen(fd, send_buff, strlen(send_buff));
+    ssl_write(ssl_, send_buff, strlen(send_buff));
     sprintf(send_buff, "%s", body_buff.c_str());
-    writen(fd, send_buff, strlen(send_buff));
+    ssl_write(ssl_, send_buff, strlen(send_buff));
 }
 
 void HttpServer::handleClose() {

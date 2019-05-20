@@ -80,6 +80,7 @@ private:
 	EventLoop* loop_;
 	std::shared_ptr<Channel> channel_;
 	int fd_;
+	SSL* ssl_;
 	FILE* fp_;
 	std::string inBuffer_;
 	std::string outBuffer_;

@@ -11,7 +11,7 @@
 class Server {
 public:
     Server(EventLoop* loop, int threadNumber, int port);
-    ~Server() {}
+    ~Server();
     EventLoop* getLoop() const { return loop_; }
     void start();
     void newConn();
