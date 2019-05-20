@@ -18,6 +18,25 @@
 
 using namespace std;
 
+
+SSL_CTX *ctx = NULL;
+
+void SSL_init() {
+    //const SSL_METHOD *method = NULL;
+    // SSL *ssl = NULL;
+    //SSL初始化
+    SSL_library_init();
+
+    const SSL_METHOD *method = SSLv23_server_method();
+    ctx = SSL_CTX_new(method);
+
+    SSL_CTX_load_verify_locations(ctx, CHAIN, NULL);
+    SSL_CTX_use_certificate_file(ctx, CERTSERVER, SSL_FILETYPE_PEM);
+    SSL_CTX_use_PrivateKey_file(ctx, KEYSERVER, SSL_FILETYPE_PEM);
+    
+    SSL_CTX_check_private_key(ctx);
+}
+
 Server::Server(EventLoop* loop, int threadNumber, int port):
     loop_(loop),
     threadNumber_(threadNumber),
@@ -26,12 +45,13 @@ Server::Server(EventLoop* loop, int threadNumber, int port):
     acceptChannel_(new Channel(loop_)),
     port_(port),
     listenFd_(socket_bind_listen(port_)) {
-    
+    SSL_init();
     acceptChannel_->setFd(listenFd_);
     handle_sigpipe();
     if (setSocketNonBlocking(listenFd_) < 0) {
         perror("set socket non block failed");
         abort();
+        SSL_init();
     }
 }
 
@@ -74,7 +94,7 @@ void Server::newConn() {
 
         setTCPNoDelay(accept_fd);
 
-        shared_ptr<HttpServer> request_info(new HttpServer(loop, accept_fd));
+        shared_ptr<HttpServer> request_info(new HttpServer(loop, accept_fd, ctx));
         request_info->getChannel()->setHolder(request_info);
         loop->addToQueue(std::bind(&HttpServer::newEvent, request_info));
     }

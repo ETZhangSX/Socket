@@ -49,7 +49,7 @@ string HttpServer::getType(const string &filetype) {
 	}
 }
 
-HttpServer::HttpServer(EventLoop* loop, int fd): 
+HttpServer::HttpServer(EventLoop* loop, int fd, SSL_CTX *ctx): 
 	loop_(loop),
 	channel_(new Channel(loop, fd)),
 	fd_(fd),

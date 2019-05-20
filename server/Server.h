@@ -8,6 +8,8 @@
 #include "ThreadPool.h"
 #include <memory>
 
+void SSL_init() ;
+
 class Server {
 public:
     Server(EventLoop* loop, int threadNumber, int port);

@@ -25,25 +25,6 @@ void handleError(const std::string &msg);
 void setTCPNoDelay(int fd);             //禁用TCP Nagle算法降低延迟
 int socket_bind_listen(int port);               //创建绑定并监听套接字
 
-SSL_CTX *ctx = NULL;
-
-void SSL_init() {
-    int rv;
-    //const SSL_METHOD *method = NULL;
-    // SSL *ssl = NULL;
-    //SSL初始化
-    SSL_library_init();
-
-    const SSL_METHOD *method = SSLv23_server_method();
-    ctx = SSL_CTX_new(method);
-
-    SSL_CTX_load_verify_locations(ctx, CHAIN, NULL);
-    SSL_CTX_use_certificate_file(ctx, CERTSERVER, SSL_FILETYPE_PEM);
-    SSL_CTX_use_PrivateKey_file(ctx, KEYSERVER, SSL_FILETYPE_PEM);
-    
-    SSL_CTX_check_private_key(ctx);
-}
-
 int ssl_read(SSL* ssl, void *buff, size_t n);
 int ssl_read(SSL* ssl, std::string &inBuffer, bool &isZero);
 int ssl_write(SSL* ssl, void *buff, size_t n);

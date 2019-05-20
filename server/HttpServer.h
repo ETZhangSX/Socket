@@ -10,6 +10,7 @@
 #include <unordered_map>
 #include <map>
 #include <memory>
+#include <openssl/ssl.h>
 
 class EventLoop;
 class Channel;
@@ -49,7 +50,7 @@ enum HttpVersion
 
 class HttpServer : public std::enable_shared_from_this<HttpServer> {
 public:
-	HttpServer(EventLoop* loop, int fd);
+	HttpServer(EventLoop* loop, int fd, SSL_CTX *ctx);
 	~HttpServer();
 	std::shared_ptr<Channel> getChannel() { return channel_; }
 	EventLoop* getLoop() { return loop_; }
