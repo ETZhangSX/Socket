@@ -50,7 +50,7 @@ enum HttpVersion
 
 class HttpServer : public std::enable_shared_from_this<HttpServer> {
 public:
-	HttpServer(EventLoop* loop, int fd, SSL_CTX *ctx);
+	HttpServer(EventLoop* loop, int fd, SSL *ssl);
 	~HttpServer();
 	std::shared_ptr<Channel> getChannel() { return channel_; }
 	EventLoop* getLoop() { return loop_; }

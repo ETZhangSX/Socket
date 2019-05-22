@@ -12,6 +12,8 @@ set(CXX_FLAGS
     -std=c++11
     -D_PTHREADS
     -Wno-unused-parameter
+    -lssl
+    -lcrypto
 )
 
 

@@ -91,10 +91,16 @@ void Server::newConn() {
             cout << "set Socket non block failed\n";
             return;
         }
-
+        SSL* ssl = SSL_new(ctx);
+        if (SSL_set_fd(ssl, accept_fd) != 1){
+		    cout << "SSL set fd error\n";
+	    }
+	    if (SSL_accept(ssl) != 1) {
+		    cout << "SSL accept error\n";
+	    }
         setTCPNoDelay(accept_fd);
 
-        shared_ptr<HttpServer> request_info(new HttpServer(loop, accept_fd, ctx));
+        shared_ptr<HttpServer> request_info(new HttpServer(loop, accept_fd, ssl));
         request_info->getChannel()->setHolder(request_info);
         loop->addToQueue(std::bind(&HttpServer::newEvent, request_info));
     }

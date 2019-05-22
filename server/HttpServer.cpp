@@ -49,19 +49,15 @@ string HttpServer::getType(const string &filetype) {
 	}
 }
 
-HttpServer::HttpServer(EventLoop* loop, int fd, SSL_CTX *ctx): 
+HttpServer::HttpServer(EventLoop* loop, int fd, SSL* ssl): 
 	loop_(loop),
 	channel_(new Channel(loop, fd)),
 	fd_(fd),
-	ssl_(SSL_new(ctx)),
+	ssl_(ssl),
 	method_(METHOD_GET),
 	http_version_(HTTP_11) {
-	if (SSL_set_fd(ssl_, fd) != 1){
-		cout << "SSL set fd error\n";
-	}
-	if (SSL_accept(ssl_) != 1) {
-		cout << "SSL accept error\n";
-	}
+	
+	
 	channel_->setReadHandler(bind(&HttpServer::handleRead, this));
 	channel_->setWriteHandler(bind(&HttpServer::handleWrite, this));
 	channel_->setConnHandler(bind(&HttpServer::connection, this));
