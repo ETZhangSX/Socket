@@ -175,16 +175,19 @@ int setSocketNonBlocking(int fd) {
 	return 0;
 }
 
+//输出错误信息
 void handleError(const string &msg) {
     cout << msg;
     // exit(1);
 }
 
+// 关闭TCP延迟省流设置，减少延迟
 void setTCPNoDelay(int fd) {
 	int enable = 1;
 	setsockopt(fd, IPPROTO_TCP, TCP_NODELAY, (void*)&enable, sizeof(enable));
 }
 
+// 创建、绑定、监听套接字
 int socket_bind_listen(int port) {
     int listenFd;
     struct sockaddr_in listen_addr;
@@ -218,6 +221,7 @@ int socket_bind_listen(int port) {
 	return listenFd;
 }
 
+/********* 基于ssl的读写操作版本 ***********/
 int ssl_read(SSL* ssl, void *buff, size_t n) {
 	size_t nleft = n;
 	ssize_t n_read = 0;
@@ -347,3 +351,5 @@ void ssl_writeFile(FILE *fp, SSL* ssl) {
     }
     cout << "Finish sending\n";
 }
+
+/**************** END *****************/

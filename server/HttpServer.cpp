@@ -57,7 +57,6 @@ HttpServer::HttpServer(EventLoop* loop, int fd, SSL* ssl):
 	method_(METHOD_GET),
 	http_version_(HTTP_11) {
 	
-	
 	channel_->setReadHandler(bind(&HttpServer::handleRead, this));
 	channel_->setWriteHandler(bind(&HttpServer::handleWrite, this));
 	channel_->setConnHandler(bind(&HttpServer::connection, this));
@@ -263,7 +262,8 @@ void HttpServer::handleRead() {
 	bool isZero = false;
 	int read_num = ssl_read(ssl_, inBuffer_, isZero);
 
-	cout << "Request line: \n" << inBuffer_;
+	cout << "length: " << read_num << '\n' 
+	     << "Request line: \n" << inBuffer_;
 
 	if (read_num < 0) {
 		perror("Readn() error");
