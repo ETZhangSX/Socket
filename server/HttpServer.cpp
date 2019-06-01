@@ -22,6 +22,7 @@ const int HttpServer::buffer_size = 1<<20;
 pthread_once_t HttpServer::once_control = PTHREAD_ONCE_INIT;
 unordered_map<string, string> HttpServer::fileType;
 
+// 初始化文件后缀名对应文件类型
 void HttpServer::fileTypeInit() {
 	fileType[".html"] = "text/html";
     fileType[".avi"] = "video/x-msvideo";
@@ -39,6 +40,7 @@ void HttpServer::fileTypeInit() {
     fileType["default"] = "text/html";
 }
 
+// 根据文件后缀名获取文件类型
 string HttpServer::getType(const string &filetype) {
 	pthread_once(&once_control, HttpServer::fileTypeInit);
 	if (fileType.find(filetype) == fileType.end()) {
@@ -49,6 +51,7 @@ string HttpServer::getType(const string &filetype) {
 	}
 }
 
+// 构造函数，初始化变量，将读写连接操作绑定到channel对应处理函数
 HttpServer::HttpServer(EventLoop* loop, int fd, SSL* ssl): 
 	loop_(loop),
 	channel_(new Channel(loop, fd)),
@@ -56,18 +59,20 @@ HttpServer::HttpServer(EventLoop* loop, int fd, SSL* ssl):
 	ssl_(ssl),
 	method_(METHOD_GET),
 	http_version_(HTTP_11) {
-	
+	SSL_do_handshake(ssl);
 	channel_->setReadHandler(bind(&HttpServer::handleRead, this));
 	channel_->setWriteHandler(bind(&HttpServer::handleWrite, this));
 	channel_->setConnHandler(bind(&HttpServer::connection, this));
 }
 
+// 析构函数，处理关闭连接
 HttpServer::~HttpServer() {
 	cout << "\033[32;1m~HttpServer\033[0m\n";
 	close(fd_);
 	SSL_free(ssl_);
 }
 
+// 重置
 void HttpServer::reset() {
 	fileName_.clear();
 	header_.clear();
@@ -79,6 +84,7 @@ URIState HttpServer::parseURI() {
 	// string对象的find(string &str, int pos)函数在调用的string对象
 	//中查找pos开始后的匹配str的第一个位置
 	size_t pos = uri.find('\r', 0);
+	
 	if (pos < 0) {
 		return PARSE_URI_ERROR;
 	}
@@ -292,6 +298,7 @@ void HttpServer::handleRead() {
 	}
 }
 
+// 处理写操作
 void HttpServer::handleWrite() {
 	__uint32_t &events_ = channel_->getEvents();
 
@@ -307,6 +314,7 @@ void HttpServer::handleWrite() {
 	}
 }
 
+// 每次连接事件处理完毕后调用，用于更新连接状态
 void HttpServer::connection() {
 	cout << "\033[32;1mHttpServer::\033[0mconnection() \n";
 	__uint32_t &events_ = channel_->getEvents();
@@ -348,12 +356,14 @@ void HttpServer::handleError(int fd, int err_num, string msg) {
     ssl_write(ssl_, send_buff, strlen(send_buff));
 }
 
+// 处理连接关闭
 void HttpServer::handleClose() {
 	cout << "\033[32;1mHttpServer::\033[0mhandleClose() \n";
 	shared_ptr<HttpServer> guard(shared_from_this());
 	loop_->removeFromPoller(channel_);
 }
 
+// 传入新连接时调用，用于将连接描述符注册到epoll
 void HttpServer::newEvent() {
 	cout << "\033[32;1mHttpServer::\033[0mnewEvent() \n";
 	channel_->setEvents(DEFAULT_EVENT);
